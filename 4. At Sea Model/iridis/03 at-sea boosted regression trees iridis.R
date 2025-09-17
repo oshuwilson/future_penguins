@@ -1,30 +1,10 @@
 #----------------------------------------------
-# Fit Oceanographic Random Forests
+# Fit Oceanographic Boosted Regression Trees
 #----------------------------------------------
 
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
+# 1. Configuration
 
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
-# 1. Configuration 
-
-# set seed
-set.seed(777)
-
-# define species and stage
-species <- "CHPE"
-stage <- "chick-rearing"
+rm(list=setdiff(ls(), c("cores", "species", "stage")))
 
 # read in data
 data <- readRDS(paste0("output/at-sea model/model_data/", species, "_", stage, "_data.rds"))
@@ -33,37 +13,32 @@ data <- readRDS(paste0("output/at-sea model/model_data/", species, "_", stage, "
 data <- data %>% mutate(pb = as.factor(pb))
 data$pb <- ordered(data$pb, levels = c("presence", "background"))
 
-
-#------------------------------
-# 2. Run Models
-#------------------------------
+#------------------------------------
+# 2. Create BRTs
+#------------------------------------
 
 # set number of folds to number of subareas
 v <- length(unique(data$subarea))
 
-#check for NAs and impute
-if(sum(is.na(data)) > 0){
-  mice <- miceRanger(data, m=1)
-  data <- completeData(mice)[[1]]
-}
-
-#define RF
-rf_mod <- rand_forest() %>%
+#define BRT
+brt_mod <- boost_tree() %>%
   set_mode("classification") %>%
-  set_engine("ranger", #use ranger package
-             importance = "impurity" #gini index for importance
+  set_engine("lightgbm" #use lightgbm package
   ) %>%
-  set_args(trees = 1000, #1000 trees
-           mtry = tune(), #tune mtry
-           min_n = 1) #minimum number of samples in a node
+  set_args(trees = tune(),
+           tree_depth = tune(), 
+           learn_rate = tune(), 
+           min_n = 20) 
 
 #create workflow
-rf_wf <- workflow() %>%
-  add_model(rf_mod)
+brt_wf <- workflow() %>%
+  add_model(brt_mod)
 
 #define hyperparameter values to vary over 
-mtry <- c(1, 2, 3)
-grid <- expand_grid(mtry = mtry)
+learn.rate <- c(0.005, 0.01, 0.5)
+tree.depth <- c(1, 3, 5)
+trees <- c(200, 500, 1000, 2000, 5000)
+grid <- expand_grid(learn_rate = learn.rate, tree_depth = tree.depth, trees = trees)
 
 #create cross-validation folds
 folds <- group_vfold_cv(data = data, 
@@ -73,20 +48,19 @@ folds <- group_vfold_cv(data = data,
 )
 
 #define formula for modelling
-rec <- recipe(pb~ ., data = data) %>%
+rec <- recipe(pb ~ ., data = data) %>%
   update_role(subarea, new_role = "ID") %>%
   step_downsample(pb)
 
 #update workflow
-rf_wf <- rf_wf %>%
+brt_wf <- brt_wf %>%
   add_recipe(rec)
 
 # enable parallelisation
-cores <- 10
 plan(multisession, workers = cores)
 
 #run models with tuning
-tun <- tune_grid(rf_wf,
+tun <- tune_grid(brt_wf,
                  resamples = folds,
                  grid = grid,
                  metrics = sdm_metric_set(),
@@ -100,13 +74,14 @@ best <- show_best(tun, metric = "boyce_cont") %>%
   filter(n == v)
 
 #set up model
-best_mod <- rand_forest() %>%
-  set_engine(engine = "ranger", importance = "impurity") %>%
+best_mod <- boost_tree() %>%
+  set_engine(engine = "lightgbm") %>%
   set_mode("classification") %>%
-  set_args(trees = 1000, mtry = best$mtry[1], min_n = 1)
+  set_args(min_n = 20, trees = best$trees[1], 
+           tree_depth = best$tree_depth[1], learn_rate = best$learn_rate[1])
 
 #update workflow
-best_wf <- rf_wf %>%
+best_wf <- brt_wf %>%
   update_model(best_mod)
 
 #run best model on all data
@@ -154,32 +129,25 @@ metrics <- metrics %>% left_join(resample_subareas)
 
 # only keep relevant columns
 metrics <- metrics %>%
-  dplyr::select(subarea, mtry, .estimate)
-
-# plot
-ggplot(metrics, aes(x = as.factor(mtry), y = .estimate)) +
-  geom_boxplot() +
-  geom_point(aes(col = subarea), size = 4, alpha = 0.4) +
-  theme_bw()
+  dplyr::select(subarea, trees, tree_depth, learn_rate, .estimate)
 
 # only keep best hyperparameter settings
 metrics <- metrics %>%
-  filter(mtry == best$mtry[1])
+  filter(trees == best$trees[1],
+         tree_depth == best$tree_depth[1],
+         learn_rate == best$learn_rate[1])
 
 # export
 saveRDS(metrics, 
-        paste0("output/at-sea model/random forests/", species, "_", stage, "_cbi_scores.rds"))
+        paste0("output/at-sea model/boosted regression trees/", species, "_", stage, "_cbi_scores.rds"))
 
 
 # 3b. Variable Importance Scores
-vi_scores <- vip::vi(best_fit)
-
-# plot
-vip::vip(best_fit)
+vi_scores <- vi(best_fit)
 
 # export
 saveRDS(vi_scores, 
-        paste0("output/at-sea model/random forests/", species, "_", stage, "_varimp_scores.rds"))
+        paste0("output/at-sea model/boosted regression trees/", species, "_", stage, "_varimp_scores.rds"))
 
 
 # 3c. Partial Dependence Plot Data
@@ -202,19 +170,9 @@ pdp_ovr <- as_tibble(pdps$agr_profiles) %>%
   dplyr::select(var, x, yhat) %>%
   mutate(yhat = 1-yhat)
 
-# plot PDPs
-p1 <- ggplot(pdp_ovr, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p1
-
 # export PDP values
 saveRDS(pdp_ovr, 
-        paste0("output/at-sea model/random forests/", species, "_", stage, "_pdp_values.rds"))
+        paste0("output/at-sea model/boosted regression trees/", species, "_", stage, "_pdp_values.rds"))
 
 # remove large DALEXtra objects
 rm(pdps, pdp_ovr, explainer)
@@ -225,4 +183,4 @@ rm(pdps, pdp_ovr, explainer)
 #---------------------------------------------
 
 saveRDS(best_fit, 
-        paste0("output/at-sea model/random forests/", species, "_", stage, "_rf_model.rds"))
+        paste0("output/at-sea model/boosted regression trees/", species, "_", stage, "_brt_model.rds"))

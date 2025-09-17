@@ -364,3 +364,265 @@ saveRDS(all_stages,
         paste0("stages/new/", species, "_stages_corrected.RDS"))
 saveRDS(all_tracks,
         paste0("newdata/", species, "_ssm_qc_tracks.RDS"))
+
+
+#------------------------------------------------------------------------------
+# Chinstrap Penguins
+#------------------------------------------------------------------------------
+
+# reset
+rm(list=ls())
+
+# define species
+species <- "CHPE"
+
+# read in automatically assigned stage dates
+stage_dates <- readRDS(paste0("stages/new/", species, "_stages_prelim.RDS")) %>% 
+  ungroup()
+
+# read in tracks with trip IDs
+tracks <- readRDS(paste0("stages/new/", species, "_tracks_with_stage_trips.RDS"))
+
+# append deployment sites from tracks to stage dates
+deps <- tracks %>%
+  group_by(individual_id, device_id) %>%
+  summarise(deployment_site = first(deployment_site))
+stage_dates <- stage_dates %>%
+  left_join(deps)
+rm(deps)
+
+# unique deployment sites 
+deployment_sites <- unique(tracks$deployment_site)
+deployment_sites %>% sort()
+
+
+# 1. Barton Peninsula, South Shetland Islands
+# should all be chick-rearing but some labelled as incubation
+
+# get stages
+barton_stages <- stage_dates %>% filter(deployment_site == "Barton Peninsula, South Shetland Islands")
+
+# get tracks
+barton_tracks <- tracks %>% filter(deployment_site == "Barton Peninsula, South Shetland Islands")
+
+# change stage to chick-rearing for remaining tracks
+barton_tracks <- barton_tracks %>%
+  mutate(stage = "chick-rearing")
+
+# create new stage dates
+barton_stages <- barton_tracks %>%
+  group_by(individual_id, device_id, stage) %>%
+  summarise(start = min(date), end = max(date)) %>%
+  ungroup()
+
+
+# 2. Ardley Island, South Shetland
+# should all be chick-rearing but all labelled as incubation
+
+# get stages
+ardley_stages <- stage_dates %>% filter(deployment_site == "Ardley Island, South Shetland")
+
+# get tracks
+ardley_tracks <- tracks %>% filter(deployment_site == "Ardley Island, South Shetland")
+
+# change stage names in both
+ardley_tracks <- ardley_tracks %>%
+  mutate(stage = "chick-rearing")
+ardley_stages <- ardley_stages %>%
+  mutate(stage = "chick-rearing")
+
+
+# 3. Deception Island, South Shetland
+# should all be chick-rearing but some labelled as incubation
+
+# get stages
+deception_stages <- stage_dates %>% filter(deployment_site == "Deception Island, South Shetland")
+
+# get tracks
+deception_tracks <- tracks %>% filter(deployment_site == "Deception Island, South Shetland")
+
+# change stage to chick-rearing for remaining tracks
+deception_tracks <- deception_tracks %>%
+  mutate(stage = "chick-rearing")
+
+# create new stage dates
+deception_stages <- deception_tracks %>%
+  group_by(individual_id, device_id, stage) %>%
+  summarise(start = min(date), end = max(date)) %>%
+  ungroup()
+
+
+# 4. Harmony Point, South Shetland Islands
+# should all be chick-rearing but some labelled as incubation
+
+# get stages
+harmony_stages <- stage_dates %>% filter(deployment_site == "Harmony Point, South Shetland Islands")
+
+# get tracks
+harmony_tracks <- tracks %>% filter(deployment_site == "Harmony Point, South Shetland Islands")
+
+# change stage to chick-rearing for remaining tracks
+harmony_tracks <- harmony_tracks %>%
+  mutate(stage = "chick-rearing")
+
+# create new stage dates
+harmony_stages <- harmony_tracks %>%
+  group_by(individual_id, device_id, stage) %>%
+  summarise(start = min(date), end = max(date)) %>%
+  ungroup()
+
+
+# 5. Nattriss Point, Saunders Islands
+# lots of looping movements removed manually and saved separately
+# see file 99_nattriss_track_correction
+# some pre-moult trips assigned as chick-rearing
+# all else should be chick-rearing
+
+# get stages
+nattriss_stages <- stage_dates %>% filter(deployment_site == "Nattriss Point, Saunders Island")
+
+# get tracks
+nattriss_tracks <- readRDS("stages/new/CHPE_nattriss_tracks_with_stage_trips.RDS")
+
+# trip IDs that need changing to pre-moult
+pm <- c("1336_9", "1337_6", "1344_22", "1345_18", "1346_24",
+        "1347_32", "1348_16", "1351_9", "1354_12", "1355_33")
+
+# change stages where necessary
+nattriss_tracks <- nattriss_tracks %>%
+  mutate(stage = case_when(
+    trip %in% pm ~ "pre-moult",
+    TRUE ~ "chick-rearing"
+  ))
+
+# create new stage dates
+nattriss_stages <- nattriss_tracks %>%
+  group_by(individual_id, device_id, stage) %>%
+  summarise(start = min(date), end = max(date)) %>%
+  ungroup()
+
+# clean up
+rm(pm)
+
+
+# 6. Nyroysa, Bouvetoya
+# some chick-rearing trips mislabelled as incubation
+
+# get stages
+nyroysa_stages <- stage_dates %>% filter(deployment_site == "Nyroysa, Bouvetoya")
+
+# get tracks
+nyroysa_tracks <- tracks %>% filter(deployment_site == "Nyroysa, Bouvetoya")
+
+# trip IDs that need changing to chick-rearing
+cr <- c("Tag14405_2", "Tag14408_1", "Tag14408_2", "Tag14408_3", "Tag14466_3",
+        "Tag14466_4", "Tag14469_3", "Tag14469_4", "Tag14469_5", "Tag14480_1",
+        "Tag14480_2", "Tag14480_3", "Tag14505_1", "Tag14505_2", "Tag14505_3",
+        "Tag14505_4", "Tag14507_2", "Tag41018_0", "Tag41018_1", "Tag41018_2",
+        "Tag41018_3", "Tag41023_2", "Tag41028_1", "Tag41028_2", "Tag41065_1",
+        "Tag41065_1")
+
+# change stages where necessary
+nyroysa_tracks <- nyroysa_tracks %>%
+  mutate(stage = case_when(
+    trip %in% cr ~ "chick-rearing",
+    TRUE ~ stage
+  ))
+
+# create new stage dates
+nyroysa_stages <- nyroysa_tracks %>%
+  group_by(individual_id, device_id, stage) %>%
+  summarise(start = min(date), end = max(date)) %>%
+  ungroup()
+
+# clean up
+rm(cr)
+
+
+# 7. Signy Island, South Orkney
+# lots of incubating and chick-rearing trips mislabelled
+
+# get stages
+signy_stages <- stage_dates %>% filter(deployment_site == "Signy Island, South Orkney")
+
+# get tracks
+signy_tracks <- tracks %>% filter(deployment_site == "Signy Island, South Orkney")
+
+# trip IDs that need changing to incubation
+inc <- c("SIC073_1", "SIC074_3", "SIC075_3", "SIC078_1", "SIC080_1",
+         "SIC081_1", "SIC083_1")
+
+# trip IDs that need changing to chick-rearing - CONTINUE 105
+cr <- c("SIC091_1", "SIC091_3", "SIC091_5", "SIC092_1",
+        "SIC092_4", "SIC093_1", "SIC094_4", "SIC096_2",
+        "SIC096_3", "SIC098_3", "SIC098_5", "SIC102_1", 
+        "SIC102_3", "SIC102_9", "SIC102_11", "SIC103_1", 
+        "SIC103_3", "SIC105_5", "SIC105_8", "SIC106_3",
+        "SIC106_7", "SIC106_9", "SIC107_6", "SIC108_1",
+        "SIC108_3", "SIC108_5", "SIC109_7", "SIC109_9",
+        "SIC110_1", "SIC110_3", "SIC111_1", "SIC111_4", 
+        "SIC111_6", "SIC111_7", "SIC112_1", "SIC112_2",
+        "SIC112_3", "SIC112_5", "SIC113_1", "SIC113_3",
+        "SIC113_5", "SIC114_3", "SIC114_5", "SIC114_7",
+        "SIC114_9", "SIC114_10", "SIC116_2", "SIC117_1",
+        "SIC118_1", "SIC118_4", "SIC118_6", "SIC119_1",
+        "SIC119_10", "SIC120_1", "SIC120_3", "SIC120_4",
+        "SIC121_3", "SIC122_1", "SIC128_2")
+
+# change stages where necessary
+signy_tracks <- signy_tracks %>%
+  mutate(stage = case_when(
+    trip %in% cr ~ "chick-rearing",
+    trip %in% inc ~ "incubation",
+    TRUE ~ stage
+  ))
+
+# create new stage dates
+signy_stages <- signy_tracks %>%
+  group_by(individual_id, device_id, stage) %>%
+  summarise(start = min(date), end = max(date)) %>%
+  ungroup()
+
+# clean up
+rm(cr, inc)
+
+
+# 18. Bring all the tracks and stages together
+
+# combine all tracks
+all_tracks <- bind_rows(
+  barton_tracks, ardley_tracks, deception_tracks, harmony_tracks,
+  nattriss_tracks, nyroysa_tracks, signy_tracks
+)
+
+# combine all stages
+all_stages <- bind_rows(
+  barton_stages, ardley_stages, deception_stages, harmony_stages,
+  nattriss_stages, nyroysa_stages, signy_stages
+)
+
+# remove deployment_site
+all_stages <- all_stages %>%
+  select(-deployment_site)
+
+# reproject tracks to EPSG:4326
+library(terra)
+all_tracks <- all_tracks %>%
+  vect(geom = c("x", "y"), crs = "epsg:6932") %>%
+  project("epsg:4326") %>%
+  as.data.frame(geom = "XY")
+all_tracks %>%
+  vect(geom = c("x", "y"), crs = "epsg:4326") %>%
+  plot(pch = ".")
+
+# rename and select key columns
+all_tracks <- all_tracks %>%
+  rename(lat = y, lon = x) %>%
+  select(individual_id, device_id, date, lon, lat, lon_se_km, lat_se_km,
+         deployment_site, stage)
+
+# export stages and tracks
+saveRDS(all_stages,
+        paste0("stages/new/", species, "_stages_corrected.RDS"))
+saveRDS(all_tracks,
+        paste0("newdata/", species, "_ssm_qc_tracks.RDS"))

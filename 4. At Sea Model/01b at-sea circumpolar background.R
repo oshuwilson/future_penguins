@@ -13,7 +13,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 }
 
 # species
-species <- "ADPE"
+species <- "CHPE"
 
 # stage
 stage <- "chick-rearing"

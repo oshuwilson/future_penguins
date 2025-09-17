@@ -2,25 +2,9 @@
 # Fit Oceanographic Bayesian Additive Regression Trees
 #-------------------------------------------------------
 
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
+# 1. Configuration
 
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(bundle)
-  library(butcher)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-}
-
-# define species and stage
-species <- "CHPE"
-stage <- "chick-rearing"
+rm(list=setdiff(ls(), c("cores", "species", "stage")))
 
 # read in data
 data <- readRDS(paste0("output/at-sea model/model_data/", species, "_", stage, "_data.rds"))
@@ -30,13 +14,9 @@ data <- data %>% mutate(pb = as.factor(pb))
 data$pb <- ordered(data$pb, levels = c("presence", "background"))
 
 
-# 2. Create BARTs
-
-#check for NAs and impute
-if(sum(is.na(data)) > 0){
-  mice <- miceRanger(data, m=1)
-  data <- completeData(mice)[[1]]
-}
+#------------------------------
+# 2. Run Models
+#------------------------------
 
 # convert subarea to numeric
 data$subarea <- as.numeric(as.factor(data$subarea))
@@ -75,7 +55,6 @@ bart_wf <- bart_wf %>%
   add_recipe(rec)
 
 # enable parallelisation
-cores <- 10
 plan(multisession, workers = cores)
 
 #run models with tuning
@@ -162,12 +141,6 @@ metrics <- metrics %>%
   dplyr::select(-subarea) %>%
   rename(subarea = subarea_name)
 
-# plot
-ggplot(metrics, aes(x = as.factor(trees), y = .estimate)) +
-  geom_boxplot() +
-  geom_point(aes(col = subarea), size = 4, alpha = 0.4) +
-  theme_bw()
-
 # only keep best hyperparameter settings
 metrics <- metrics %>%
   filter(trees == best$trees[1])
@@ -195,13 +168,6 @@ vi_scores <- data.frame(Variable = names(mean_vi),
 
 # subtract the minimum VI score
 vi_scores$Importance <- vi_scores$Importance - min(vi_scores$Importance) + 5
-
-# plot
-ggplot(vi_scores, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importance") +
-  theme_bw()
 
 # export
 saveRDS(vi_scores, 
@@ -262,16 +228,6 @@ pdps <- pdps %>%
   mutate(yhat = (yhat - min_val) / (max_val - min_val)) %>%
   mutate(yhat = 1 - yhat)
 
-# plot
-p2 <- ggplot(pdps, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p2
-
 # export PDP values
 saveRDS(pdps, 
         paste0("output/at-sea model/bayesian additive regression trees/", species, "_", stage, "_pdp_values.rds"))
@@ -281,8 +237,8 @@ saveRDS(pdps,
 #---------------------------------------------
 
 # butcher and bundle to retain pointers
-bart2 <- butcher::butcher(best_fit)
-bart3 <- bundle::bundle(bart2)
+bart2 <- butcher(best_fit)
+bart3 <- bundle(bart2)
 
 # save
 saveRDS(bart3, 

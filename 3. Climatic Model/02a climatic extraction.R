@@ -91,7 +91,7 @@ if(species == "KIPE"){
 # read in temperature, precipitation, and nearest open water data
 temp <- rast("E:/Satellite_Data/monthly/ERA5/air_temp_monthly.grib")
 prec <- rast("E:/Satellite_Data/monthly/ERA5/total_precipitation_monthly.grib")
-now <- rast("E:/Satellite_Data/monthly/now/now.nc")
+now <- rast("E:/Satellite_Data/monthly/now/now_resampled.nc")
 
 # limit to target months
 temp <- temp[[month(time(temp)) %in% target_months]]

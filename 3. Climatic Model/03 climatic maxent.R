@@ -31,7 +31,7 @@ set.seed(777)
 species <- "ADPE"
 
 # read in thinned data
-data <- readRDS(paste0("output/climatic model/thinned/", species, " thinned.rds")) %>%
+data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
   ungroup()
 
 # convert presence-absence to ordered factor
@@ -297,3 +297,4 @@ rm(pdps, pdp_ovr, explainer)
 
 saveRDS(best_fit,
         paste0("output/climatic model/maxent/", species, "_maxent_model.rds"))
+

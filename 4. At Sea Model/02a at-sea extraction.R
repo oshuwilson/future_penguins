@@ -2,6 +2,8 @@
 # Extract to background and presence data
 #----------------------------------------
 
+# Remove SSH?
+
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
@@ -13,7 +15,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 extract <- terra::extract
 
 # species
-species <- "ADPE"
+species <- "CHPE"
 
 # stage
 stage <- "chick-rearing"
@@ -106,5 +108,5 @@ print(paste0(species, " ", stage, " extracted"))
 # 3. Bonus - plots
 
 # change x for var of interest
-ggplot(data, aes(x = mld)) +
+ggplot(data, aes(x = sst)) +
   geom_histogram(aes(fill = pa), alpha = 0.5)

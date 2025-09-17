@@ -1,23 +1,23 @@
 #-------------------------------------------------
-# Calculate Wave Exposure for each Species (GLO90)
+# Project Wave Exposure for each Species (GLO90)
 #-------------------------------------------------
 
 rm(list=ls())
-setwd("E:/Satellite_Data")
+setwd("E:/")
 
 library(tidyverse)
 library(terra)
 library(tidyterra)
 
+# define scenario and species
+scenario <- "ssp585"
+species <- "ADPE"
 
 # 1. Setup
 
 # read in wave height and angle rasters
-hs <- rast("monthly/ERA5/significant_wave_height_monthly.grib")
-theta <- rast("monthly/ERA5/wave_direction_monthly.grib")
-
-# define species
-species <- "ADPE"
+hs <- rast(paste0("cmip6_data/CMIP6/deltas/hs/satellite_data/transformed/", scenario, "_era5res.nc"))
+theta <- rast("Satellite_Data/monthly/ERA5/wave_direction_monthly.grib")
 
 # depending on the species, define target months
 if(species == "ADPE"){
@@ -117,8 +117,8 @@ max_dist <- max(c(colonies$dist2coast, colonies2$dist2coast))
 for(this.dem in dems){
   
   # read in aspect, elevation and distance to coast
-  aspect <- rast(paste0("static/DEM/GLO90_100m/", this.dem, "/aspect.nc"))
-  dist2coast <- rast(paste0("static/DEM/GLO90_100m/", this.dem, "/dist_to_coast.nc"))
+  aspect <- rast(paste0("Satellite_Data/static/DEM/GLO90_100m/", this.dem, "/aspect.nc"))
+  dist2coast <- rast(paste0("Satellite_Data/static/DEM/GLO90_100m/", this.dem, "/dist_to_coast.nc"))
   
   # revalue dist2coast values to within 2x max_dist or beyond
   m1 <- matrix(c(0, max_dist * 2, 1, 
@@ -135,7 +135,7 @@ for(this.dem in dems){
     filter(dist_to_coast == 1)
   plot(mask, col = "red")
   
-  # mask out aspect
+  # mask out aspect 
   aspect <- mask(aspect, mask)
   
   # crop wave height and direction to this DEM
@@ -173,5 +173,5 @@ for(this.dem in dems){
   plot(wave_exposure)
   
   # save wave_exposure
-  writeCDF(wave_exposure, paste0("static/DEM/GLO90_100m/", this.dem, "/wave_exposure_", species, ".nc"))
+  writeCDF(wave_exposure, paste0("Satellite_Data/static/DEM/GLO90_100m/", this.dem, "/wave_exposure_", species, "_", scenario, ".nc"))
 }

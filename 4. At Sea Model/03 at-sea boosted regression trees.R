@@ -1,5 +1,5 @@
 #----------------------------------------------
-# Fit Global Boosted Regression Trees
+# Fit Oceanographic Boosted Regression Trees
 #----------------------------------------------
 
 rm(list=ls())
@@ -23,7 +23,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 set.seed(777)
 
 # define species and stage
-species <- "ADPE"
+species <- "CHPE"
 stage <- "chick-rearing"
 
 # read in data

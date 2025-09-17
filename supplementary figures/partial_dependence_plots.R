@@ -9,7 +9,7 @@ library(tidyverse)
 
 # definitions
 species <- "ADPE"
-stage <- "incubation"
+stage <- "chick-rearing"
 model <- "at-sea model"
 
 # list files that contain the species, stage, and "pdp"

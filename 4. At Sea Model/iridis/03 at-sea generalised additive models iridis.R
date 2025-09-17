@@ -2,29 +2,9 @@
 # Fit Oceanographic Generalised Additive Models
 #----------------------------------------------
 
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
+# 1. Configuration
 
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
-# 1. Configuration 
-
-# set seed
-set.seed(777)
-
-# define species and stage
-species <- "CHPE"
-stage <- "chick-rearing"
+rm(list=setdiff(ls(), c("cores", "species", "stage")))
 
 # read in data
 data <- readRDS(paste0("output/at-sea model/model_data/", species, "_", stage, "_data.rds"))
@@ -38,7 +18,9 @@ data <- data %>%
   mutate(pb = relevel(pb, ref = "presence")) # presence is 1, absence is 0
 
 
-# 2. Create Generalised Additive Models
+#------------------------------
+# 2. Run Models
+#------------------------------
 
 # set number of folds to number of subareas
 v <- length(unique(data$subarea))
@@ -84,7 +66,6 @@ adjust_deg_free <- c(0.5, 1, 1.5, 2)
 grid <- expand_grid(adjust_deg_free = adjust_deg_free)
 
 # enable parallelisation
-cores <- 10
 plan(multisession, workers = cores)
 
 #run models with tuning
@@ -179,12 +160,6 @@ metrics <- metrics %>% left_join(resample_subareas)
 metrics <- metrics %>%
   dplyr::select(subarea, adjust_deg_free, .estimate)
 
-# plot
-ggplot(metrics, aes(x = as.factor(adjust_deg_free), y = .estimate)) +
-  geom_boxplot() +
-  geom_point(aes(col = subarea), size = 4, alpha = 0.4) +
-  theme_bw()
-
 # only keep best hyperparameter settings
 metrics <- metrics %>%
   filter(adjust_deg_free == best$adjust_deg_free[1])
@@ -225,13 +200,6 @@ vi_scores <- vi_scores %>%
   rename(Variable = variable,
          Importance = dropout_loss)
 
-# plot
-ggplot(vi_scores, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importance") +
-  theme_bw()
-
 # export
 saveRDS(vi_scores,
         paste0("output/at-sea model/generalised additive models/", species, "_", stage, "_varimp_scores.rds"))
@@ -255,16 +223,6 @@ sm <- sm %>%
                names_to = "var",
                values_to = "x") %>%
   drop_na(x)
-
-# plot predictions
-p1 <- ggplot(sm, aes(x, .estimate)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p1
 
 # format same as PDPs
 sm <- sm %>%

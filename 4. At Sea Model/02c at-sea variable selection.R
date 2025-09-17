@@ -2,8 +2,6 @@
 # Variable Selection using Shallow BARTs and Collinearity Testing
 #----------------------------------------------------------------
 
-# keep variables that maintain an importance over 0.1?
-
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
@@ -23,90 +21,14 @@ candidate_vars <- c("depth", "slope", "sst", "sal",
                     "sic", "curr", "mld")
 
 # define species and stage
-species <- "ADPE"
+species <- "CHPE"
 stage <- "chick-rearing"
 
 # read in extracted data
-data <- readRDS(paste0("output/at-sea model/extraction/", species, " ", stage, " extracted.RDS"))
-
-# convert data to a dataframe
-data <- data %>%
-  as.data.frame(geom = "XY") %>%
-  rename(pb = pa)
-
-
-#-----------------------------------------------------
-# Find important variables for machine learning models
-#-----------------------------------------------------
-
-# package for variable importance
-library(embarcadero)
-
-# set up data for embarcadero
-xdata <- data %>% dplyr::select(all_of(candidate_vars)) %>%
-  as.data.frame()
-ydata <- data %>% mutate(pb = ifelse(pb == "presence", 1, 0)) %>% pull(pb)
-
-# run varimp.diag 
-p1 <- varimp.diag(xdata, ydata, iter = 30)
-p1
-
-# get data from plot
-p1data <- p1 %>% pluck("data")
-
-# calculate range of importance for each variable and isolate scores at 10 and 20
-p1data %>%
-  group_by(variable) %>%
-  summarise(diff = max(imp) - min(imp))
-p1data %>%
-  pivot_wider(names_from = trees, values_from = imp) %>%
-  rename(ten = `10`, twenty = `20`) %>%
-  dplyr::select(variable, ten, twenty)
-
-# run variable.step - to find best variables based on RMSE (seemingly negligable differences)
-#key_vars <- variable.step(xdata, ydata, iter = 30)
-
-# # get RMSE plot
-# p2 <- last_plot()
-# 
-# # get data from plot
-# p2data <- p2 %>% pluck("data")
-
-# define key vars based on p1 and differences
-# criteria: is the VarImp below 0.05 for any number of trees?
-# criteria: are variables among the least important when using 200 trees?
-# criteria: does the VarImp drop below that of potentially informative vars for 10 AND 20 trees?
-# criteria: does the range of VarImp scores for that variable exceed 0.1 (if declining with fewer trees)?
-key_vars <- c("depth", "ssh", "sst", "slope", "sic", "sal")
-
-# set machine learning dataframe to use key_vars only
-ml_data <- data %>%
-  dplyr::select(pb, subarea, all_of(key_vars))
-
-# save machine learning dataframe
-saveRDS(ml_data, 
-        paste0("output/at-sea model/model_data/", species, "_", stage, "_ml_data.rds"))
-
-#save the plots
-ggsave(paste0("output/at-sea model/varselection/", species, "_", stage, "_BART_varimp.png"),
-       p1, width = 10, height = 10)
-# ggsave(paste0("output/at-sea model/varselection/", species, "_", stage, "_RMSE_dropped.png"),
-#        p2, width = 10, height = 10)
-
-# save varimp data
-write_csv(p1data, 
-          paste0("output/at-sea model/varselection/", species, "_", stage, "_BART_varimp.csv"))
-# write_csv(p2data, 
-#           paste0("output/at-sea model/varselection/", species, "_", stage, "_RMSE_dropped.csv"))
-
-# save key variable list
-key_var_df <- data.frame(key_vars = key_vars, species_name = species, stage_name = stage)
-write_csv(key_var_df, 
-          paste0("output/at-sea model/varselection/", species, "_", stage, "_key_vars.csv"))
-
+data <- readRDS(paste0("output/at-sea model/extraction/", species, " ", stage, " extracted subsampled.RDS"))
 
 #-------------------------------------------------------
-# Repeat with collinearity testing for regression models
+# Run collinearity testing
 #-------------------------------------------------------
 
 # test for collinearity using variance inflation factors 
@@ -186,7 +108,7 @@ p1data %>%
 # criteria: is the VarImp below 0.05 for any number of trees?
 # criteria: does the VarImp decline when using 10 AND 20 trees?
 # criteria: does the range of VarImp scores for that variable exceed 0.1 (if declining with fewer trees)?
-key_reg_vars <- c("depth", "sst", "slope", "sic", "sal", "curr", "mld")
+key_reg_vars <- c("depth", "sst", "slope", "sic", "sal", "mld")
 
 # set regression dataframe to use key_vars only
 regdata <- data %>%

@@ -30,7 +30,7 @@ set.seed(777)
 species <- "ADPE"
 
 # read in thinned data
-data <- readRDS(paste0("output/climatic model/thinned/", species, " thinned.rds")) %>%
+data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
   ungroup()
 
 # convert presence-absence to ordered factor
@@ -109,7 +109,7 @@ for(i in 1:27){
                    resamples = folds,
                    grid = grid,
                    metrics = sdm_metric_set(),
-                   control = control_grid(verbose=T)) 
+                   control = control_grid(verbose=F)) 
   
   #get metric scores for each tuning value
   metrics <- collect_metrics(tun, summarize = F)  
@@ -243,7 +243,6 @@ explainer <- explain(model = gam1,
 
 # compute variable importance scores
 vip_scores <- model_parts(explainer)
-plot(vip_scores)
 
 # get scores from vip_scores
 vi_scores <- vip_scores %>%
