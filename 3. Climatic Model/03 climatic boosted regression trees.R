@@ -2,9 +2,6 @@
 # Fit Climatic Boosted Regression Trees
 #----------------------------------------------
 
-# select predictors with boyce index or maximum log likelihood?
-# group cross validation?
-
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
@@ -48,7 +45,7 @@ pred_combos <- expand.grid(temp = temps, prec = precips, now = nows)
 #---------------------------------------
 
 # loop over each combo
-for(i in 1:3){
+for(i in 1:27){
   
   # get predictors
   predictors <- pred_combos[i,] %>%
@@ -58,7 +55,7 @@ for(i in 1:3){
   
   # isolate dataset with only these predictors
   data2 <- data %>%
-    select(all_of(predictors), pa)
+    select(all_of(predictors), pa, sector)
 
   #define BRT
   brt_mod <- boost_tree() %>%
@@ -80,13 +77,19 @@ for(i in 1:3){
   trees <- c(200, 500, 1000, 2000, 5000)
   grid <- expand_grid(learn_rate = learn.rate, tree_depth = tree.depth, trees = trees)
   
+  # set number of folds to number of sectors
+  v <- length(unique(data$sector))
+
   #create cross-validation folds
-  folds <- vfold_cv(data = data2, 
-                    v = 10
+  folds <- group_vfold_cv(data = data2,
+                          group = sector, #split training/testing data by ocean sector
+                          v = v, #number of folds
+                          balance = "groups" #one subarea per fold
   )
-  
+
   #define formula for modelling
-  rec <- recipe(pa ~ ., data = data2) %>%
+  rec <- recipe(pa ~ ., data = data2)  %>%
+    update_role(sector, new_role = "ID") %>%
     step_downsample(pa)
   
   #update workflow
@@ -108,8 +111,8 @@ for(i in 1:3){
   metrics <- collect_metrics(tun, summarize = F)
   
   #extract best model
-  best <- show_best(tun, metric = "boyce_cont") %>%
-    filter(n == 10)
+  best <- show_best(tun, metric = "tss_max") %>%
+    filter(n == v)
   
   # append predictors
   best <- best %>%

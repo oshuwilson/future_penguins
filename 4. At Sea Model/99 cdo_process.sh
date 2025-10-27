@@ -54,7 +54,8 @@ for curr in *curr*.nc; do echo $curr; cdo sqrt "$curr" "${curr%_squared.nc}.nc";
 
 # combining files from multiple decades into one file (change dates as necessary)
 for i in *206101-207012*.nc; do echo $i; second="${i/206101-207012/207101-208012}"; echo $second; third=${i/206101-207012/208101-209012}; echo $third; fourth="${i/206101-207012/209101-210012}"; echo $fourth; cdo mergetime $i $second $third $fourth "${i/206101-207012/206101-210012}"; done
-for i in *198001-198912*.nc; do echo $i; second="${i/198001-198912/199001-199912}"; echo $second; third=${i/198001-198912/200001-200912}; echo $third; fourth="${i/198001-198912/201001-201412}"; echo $fourth; cdo mergetime $i $second $third $fourth "${i/198001-198912/198001-201412}"; done
+
+for i in *198101-199012*.nc; do echo $i; second="${i/198101-199012/199101-200012}"; echo $second; third=${i/198101-199012/200101-201012}; echo $third; fourth="${i/198101-199012/201101-201412}"; echo $fourth; cdo mergetime $i $second $third $fourth "${i/198101-199012/198101-201412}"; done
 
 # UKESM combine decades
 for i in *195001-199912*.nc; do echo $i; second="${i/195001-199912/200001-201412}"; echo $second; cdo mergetime $i $second "${i/195001-199912/195001-201412}"; done

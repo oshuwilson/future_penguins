@@ -1,9 +1,9 @@
 #----------------------------------------------
-# Oceanographic Modelling Master Script
+# Climatic Modelling Master Script
 #----------------------------------------------
 
 # checklist:
-# 1. newest model data
+# 1. newest model env thinned data
 
 rm(list=ls())
 setwd("/iridisfs/scratch/jcw2g17/penguins")
@@ -22,6 +22,7 @@ library(future)
 library(DALEXtra)
 library(vip)
 library(dbarts)
+library(gratia)
 
 # 1. Configuration 
 
@@ -31,9 +32,8 @@ cores <- 78
 # set seed
 set.seed(777)
 
-# define species and stage
+# define species
 species <- "ADPE"
-stage <- "chick-rearing"
 
 #---------------------------------------------------
 # 2. Source Modelling Scripts
@@ -41,20 +41,20 @@ stage <- "chick-rearing"
 
 # random forests
 print("Random Forests")
-source("code/4. At Sea Model/03 at-sea random forests iridis.R")
+source("code/3. Climatic Model/03 climatic random forests iridis.R")
 
 # boosted regression trees
 print("Boosted Regression Trees")
-source("code/4. At Sea Model/03 at-sea boosted regression trees iridis.R")
+source("code/3. Climatic Model/03 climatic boosted regression trees iridis.R")
 
 # maxent
 print("MaxEnt")
-source("code/4. At Sea Model/03 at-sea maxent iridis.R")
+source("code/3. Climatic Model/03 climatic maxent iridis.R")
 
 # generalised additive models
 print("Generalised Additive Models")
-source("code/4. At Sea Model/03 at-sea generalised additive models iridis.R")
+source("code/3. Climatic Model/03 climatic generalised additive models iridis.R")
 
 # bayesian additive regression trees
 print("Bayesian Additive Regression Trees")
-source("code/4. At Sea Model/03 at-sea bayesian additive regression trees iridis.R")
+source("code/3. Climatic Model/03 climatic bayesian additive regression trees iridis.R")

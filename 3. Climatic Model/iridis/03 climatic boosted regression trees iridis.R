@@ -1,30 +1,10 @@
-#------------------------------------------------
-# Fit Climatic Bayesian Additive Regression Trees
-#------------------------------------------------
-
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
-
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
+#----------------------------------------------
+# Fit Climatic Boosted Regression Trees
+#----------------------------------------------
 
 # 1. Configuration 
 
-# set seed
-set.seed(777)
-
-# define species 
-species <- "ADPE"
+rm(list=setdiff(ls(), c("cores", "species")))
 
 # read in thinned data
 data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
@@ -46,7 +26,7 @@ pred_combos <- expand.grid(temp = temps, prec = precips, now = nows)
 #---------------------------------------
 
 # loop over each combo
-for(i in 1:27){ 
+for(i in 1:27){
   
   # get predictors
   predictors <- pred_combos[i,] %>%
@@ -57,20 +37,26 @@ for(i in 1:27){
   # isolate dataset with only these predictors
   data2 <- data %>%
     select(all_of(predictors), pa, sector)
-  
-  #define BART
-  bart_mod <- parsnip::bart() %>%
+
+  #define BRT
+  brt_mod <- boost_tree() %>%
     set_mode("classification") %>%
-    set_engine("dbarts") %>%
-    set_args(trees = tune()) #tune trees
+    set_engine("lightgbm", num_threads = 1 #use lightgbm package
+    ) %>%
+    set_args(trees = tune(),
+             tree_depth = tune(), 
+             learn_rate = tune(), 
+             min_n = 20) 
   
   #create workflow
-  bart_wf <- workflow() %>%
-    add_model(bart_mod)
+  brt_wf <- workflow() %>%
+    add_model(brt_mod)
   
-  #define tree values to vary over 
-  trees <- c(50, 100, 200, 300)
-  grid <- expand_grid(trees = trees)
+  #define hyperparameter values to vary over 
+  learn.rate <- c(0.005, 0.01, 0.5)
+  tree.depth <- c(1, 3, 5)
+  trees <- c(200, 500, 1000, 2000, 5000)
+  grid <- expand_grid(learn_rate = learn.rate, tree_depth = tree.depth, trees = trees)
   
   # set number of folds to number of sectors
   v <- length(unique(data$sector))
@@ -86,25 +72,24 @@ for(i in 1:27){
   rec <- recipe(pa ~ ., data = data2)  %>%
     update_role(sector, new_role = "ID") %>%
     step_downsample(pa)
-
+  
   #update workflow
-  bart_wf <- bart_wf %>%
+  brt_wf <- brt_wf %>%
     add_recipe(rec)
   
   # enable parallelisation
-  cores <- 10
-  plan(multisession, workers = cores)
+  plan(sequential)
   
   #run models with tuning
-  tun <- tune_grid(bart_wf,
+  tun <- tune_grid(brt_wf,
                    resamples = folds,
                    grid = grid,
                    metrics = sdm_metric_set(),
-                   control = control_grid(verbose=F)) 
+                   control = control_grid(verbose=T)) 
   
   #get metric scores for each tuning value
-  metrics <- collect_metrics(tun, summarize = F)  
-
+  metrics <- collect_metrics(tun, summarize = F)
+  
   #extract best model
   best <- show_best(tun, metric = "tss_max") %>%
     filter(n == v)
@@ -122,7 +107,9 @@ for(i in 1:27){
   
   # print completion
   print(paste0(i, " of 27 complete"))
+  
 }
+
 
 # get the best predictor index from comparison
 i <- all_best %>%
@@ -140,17 +127,31 @@ predictors <- pred_combos[i,] %>%
 data2 <- data %>%
   select(all_of(predictors), pa)
 
-# get the best number of trees from comparison
+# get the best hyperparameter values from comparison
 best_trees <- all_best %>%
   arrange(desc(mean)) %>%
   slice(1) %>%
   pull(trees)
 
+best_tree_depth <- all_best %>%
+  arrange(desc(mean)) %>%
+  slice(1) %>%
+  pull(tree_depth)
+
+best_learn_rate <- all_best %>%
+  arrange(desc(mean)) %>%
+  slice(1) %>%
+  pull(learn_rate)
+
 #set up model
-best_mod <- parsnip::bart() %>%
-  set_engine(engine = "dbarts") %>%
+best_mod <- boost_tree() %>%
   set_mode("classification") %>%
-  set_args(trees = best_trees)
+  set_engine("lightgbm" #use lightgbm package
+  ) %>%
+  set_args(trees = best_trees,
+           tree_depth = best_tree_depth, 
+           learn_rate = best_learn_rate, 
+           min_n = 20) 
 
 #create new workflow
 best_wf <- workflow() %>%
@@ -193,120 +194,51 @@ metrics <- metrics %>%
 
 # only keep relevant columns
 metrics <- metrics %>%
-  dplyr::select(trees, mean, std_err, predictors)
+  select(trees, tree_depth, learn_rate, mean, std_err, predictors)  
 
 # export
 saveRDS(metrics,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_cbi_scores.rds"))
+        paste0("output/climatic model/boosted regression trees/", species, "_cbi_scores.rds"))
 
 
 # 3b. Variable Importance Scores
-library(dbarts)
-
-# extract the underlying dbarts model
-bart1 <- extract_fit_parsnip(best_fit)$fit
-
-# get variable usage counts from posterior
-var_counts <- bart1$varcount
-
-# get mean for each variable
-mean_vi <- colMeans(var_counts)
-
-# create a data frame with variable names and their importance scores
-vi_scores <- data.frame(Variable = names(mean_vi), 
-                        Importance = mean_vi)
-
-# subtract the minimum VI score
-vi_scores$Importance <- vi_scores$Importance - min(vi_scores$Importance) + 5
-
-# plot
-ggplot(vi_scores, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importance") +
-  theme_bw()
+vi_scores <- vi(best_fit)
 
 # export
 saveRDS(vi_scores,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_varimp_scores.rds"))
+        paste0("output/climatic model/boosted regression trees/", species, "_varimp_scores.rds"))
 
 
 # 3c. Partial Dependence Plot Data
 
-# compute partial depndence values
-part <- pdbart(bart1, pl = F)
+#get explainer
+explainer <- explain_tidymodels(model = best_fit, 
+                                data = dplyr::select(data2, -pa),
+                                y = as.integer(data2$pa),
+                                verbose = T)
 
-# define initial max and min val as 0
-max_val <- 0
-min_val <- 0
+#compute partial dependence
+pdps <- model_profile(explainer, 
+                      variables = names(data2)[!names(data2) %in% c("pa")],
+                      N = 500)
 
-# for each variable
-for(i in 1:length(part$xlbs)){
-  
-  # get the variable name
-  var <- part$xlbs[i]
-  
-  # get the levels of this variable where points are logged
-  levs <- part$levs[[i]]
-  
-  # get the partial dependence values
-  vals <- part$fd[[i]]
-  
-  # get the mean partial dependence value for each level
-  mean_vals <- colMeans(vals)
-  
-  # get the max and min values for this variable
-  max_val_i <- max(vals)
-  min_val_i <- min(vals)
-  
-  # if this is the biggest max val or smallest min val, update
-  if(max_val_i > max_val){
-    max_val <- max_val_i
-  }
-  if(min_val_i < min_val){
-    min_val <- min_val_i
-  }
-  
-  # join into a data frame
-  pdp <- data.frame(var = var, 
-                    x = levs, 
-                    yhat = mean_vals)
-  
-  # join to all vars
-  if(i == 1){
-    pdps <- pdp
-  } else {
-    pdps <- rbind(pdps, pdp)
-  }
-}
-
-# scale yhat by the min and max values
-pdps <- pdps %>%
-  mutate(yhat = (yhat - min_val) / (max_val - min_val)) %>%
-  mutate(yhat = 1 - yhat)
-
-# plot
-p2 <- ggplot(pdps, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p2
+#extract pdp predictive values
+pdp_ovr <- as_tibble(pdps$agr_profiles) %>%
+  rename(x = `_x_`, yhat = `_yhat_`, var = `_vname_`) %>%
+  dplyr::select(var, x, yhat) %>%
+  mutate(yhat = 1-yhat)
 
 # export PDP values
-saveRDS(pdps,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_pdp_values.rds"))
+saveRDS(pdp_ovr,
+        paste0("output/climatic model/boosted regression trees/", species, "_pdp_values.rds"))
+
+# remove large DALEXtra objects
+rm(pdps, pdp_ovr, explainer)
 
 
 #---------------------------------------------
 # 4. Export the model
 #---------------------------------------------
 
-# butcher and bundle to retain pointers
-bart2 <- butcher::butcher(best_fit)
-bart3 <- bundle::bundle(bart2)
-
-saveRDS(bart3,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_bart_model.rds"))
+saveRDS(best_fit,
+        paste0("output/climatic model/boosted regression trees/", species, "_brt_model.rds"))

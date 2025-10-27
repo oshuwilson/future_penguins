@@ -30,7 +30,7 @@ set.seed(777)
 species <- "ADPE"
 
 # read in thinned data
-data <- readRDS(paste0("output/climatic model/thinned/", species, " thinned.rds")) %>%
+data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
   ungroup()
 
 # convert presence-absence to ordered factor
@@ -59,7 +59,7 @@ for(i in 1:27){
   
   # isolate dataset with only these predictors
   data2 <- data %>%
-    select(all_of(predictors), pa)
+    select(all_of(predictors), pa, sector)
   
   #check for NAs and impute
   if(sum(is.na(data)) > 0){
@@ -85,12 +85,19 @@ for(i in 1:27){
   mtry <- c(1, 2, 3)
   grid <- expand_grid(mtry = mtry)
   
+  # set number of folds to number of sectors
+  v <- length(unique(data$sector))
+
   #create cross-validation folds
-  folds <- vfold_cv(data = data2, 
-                    v = 10)
-  
+  folds <- group_vfold_cv(data = data2,
+                          group = sector, #split training/testing data by ocean sector
+                          v = v, #number of folds
+                          balance = "groups" #one subarea per fold
+  )
+
   #define formula for modelling
-  rec <- recipe(pa ~ ., data = data2) %>%
+  rec <- recipe(pa ~ ., data = data2)  %>%
+    update_role(sector, new_role = "ID") %>%
     step_downsample(pa)
   
   #update workflow
@@ -112,8 +119,8 @@ for(i in 1:27){
   metrics <- collect_metrics(tun, summarize = F)
   
   #extract best model
-  best <- show_best(tun, metric = "boyce_cont") %>%
-    filter(n == 10)
+  best <- show_best(tun, metric = "tss_max") %>%
+    filter(n == v)
   
   # append predictors
   best <- best %>%

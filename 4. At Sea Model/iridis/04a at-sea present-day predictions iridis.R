@@ -52,7 +52,7 @@ all_vars <- read.csv(paste0("penguins/output/at-sea model/varselection/", specie
   pull(key_vars)
 
 # separate out static and dynamic covariates
-static_vars <- all_vars[all_vars %in% c("depth", "slope")]
+static_vars <- all_vars[all_vars %in% c("depth", "slope", "dshelf")]
 dynamic_vars <- all_vars[!all_vars %in% static_vars]
 
 # set out target extent

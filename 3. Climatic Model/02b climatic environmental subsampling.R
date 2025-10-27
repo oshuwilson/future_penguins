@@ -4,7 +4,6 @@
 
 # adapted from script on Arman Pili's Github
 # https://github.com/UP-macroecology/Pili_EnvSubsampling/blob/master/functions/processData_E_clustering.R
-# supplementary material suggests k-means clustering and umap reduction for explaining the niche
 
 
 rm(list=ls())
@@ -22,12 +21,6 @@ species <- "ADPE"
 
 # read in extracted info
 data <- readRDS(paste0("output/climatic model/extraction/", species, " extracted.rds"))
-
-# if nearest open water is NA, replace with 0
-data <- data %>%
-  mutate(avg_now = ifelse(is.na(avg_now), 0, avg_now),
-         avg_min_now = ifelse(is.na(avg_min_now), 0 , avg_min_now),
-         avg_max_now = ifelse(is.na(avg_max_now), 0, avg_max_now))
 
 # remove NAs
 data <- data %>%
@@ -54,11 +47,19 @@ scaled_umap <- umap(scaled, config = umap_config)$layout %>%
 
 # clustering with dbscan
 set.seed(777)
-cluster <- hdbscan(scaled_umap, minPts = 10)$cluster
+cluster <- hdbscan(scaled_umap, minPts = 2)$cluster
 
 # bind cluster info
 data <- data %>%
   bind_cols(cluster = cluster)
+
+# isolate points not assigned to a cluster
+zeroes <- data %>%
+  filter(cluster == 0)
+zeroes_pres <- zeroes %>% 
+  filter(pa == "presence")
+zeroes_abs <- zeroes %>% 
+  filter(pa == "absence")
 
 # isolate presences and absences
 pres <- data %>%
@@ -70,11 +71,13 @@ abs <- data %>%
 pres <- pres %>%
   group_by(cluster) %>%
   sample_n(1) %>%
-  ungroup()
+  ungroup() %>%
+  bind_rows(zeroes_pres)
 abs <- abs %>%
   group_by(cluster) %>%
   sample_n(1) %>%
-  ungroup()
+  ungroup() %>%
+  bind_rows(zeroes_abs)
 
 # limit further to avoid bias towards antarctic coast in absences
 small <- abs %>%

@@ -9,7 +9,7 @@ library(terra)
 library(lubridate)
 
 #define CMIP6 GCM
-gcm <- "NorESM2-MM"
+gcm <- "CanESM5"
 
 # create table of cmip and satellite variable names
 cmip_vars <- c("zos", "siconc", "tos", "mlotst", "sos", "curr")

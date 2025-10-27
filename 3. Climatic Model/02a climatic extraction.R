@@ -2,9 +2,6 @@
 # Exclude Nearby Background Samples for Colony Climate Models
 #------------------------------------------------------------
 
-# if north of 50 degrees, make nearest open water values 0 for all
-# export created rasters for making predictions and adding deltas
-
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
@@ -207,8 +204,29 @@ pts$avg_max_now <- extract(avg_max_now, pts, ID = F)
 pts <- pts %>%
   as.data.frame(geom = "XY")
 
+# assign to an ocean sector
+pts <- pts %>%
+  mutate(sector = case_when(
+    subarea %in% c("Subarea 48.1", "Subarea 48.2", "Subarea 48.3", "Subarea 48.4",
+                   "Subarea 48.5", "Subarea 48.6", "Bouvet", "Falklands", "Tristan da Cunha") ~ 
+      "Atlantic",
+    subarea %in% c("Subarea 88.1", "Subarea 88.2", "Subarea 88.3", "Chile", 
+                   "Macquarie", "NZ Subantarctic") ~
+      "Pacific",
+    subarea %in% c("Division 58.4.1", "Division 58.4.2", "Division 58.5.1", "Division 58.5.2",
+                   "Subarea 58.6", "Subarea 58.7", "Amsterdam and St Paul") ~
+      "Indian"
+  ))
+
+# if y > -50, relabel nearest open water as 0 (NA otherwise)
+pts <- pts %>%
+  mutate(avg_now = ifelse(y >= -50, 0, avg_now),
+         avg_min_now = ifelse(y >= -50, 0, avg_min_now),
+         avg_max_now = ifelse(y >= -50, 0, avg_max_now))
+
 # export
 saveRDS(pts, paste0("output/climatic model/extraction/", species, " extracted.rds"))
+
 
 
 #-------------------------------------------------------------------------------

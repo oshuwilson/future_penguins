@@ -1,34 +1,10 @@
 #----------------------------------------------
-# Fit Climatic MaxEnt
+# Fit Climatic Generalised Additive Models
 #----------------------------------------------
-
-# select predictors with boyce index or maximum log likelihood?
-# group cross validation?
-
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
-
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
-
 
 # 1. Configuration 
 
-# set seed
-set.seed(777)
-
-# define species 
-species <- "ADPE"
+rm(list=setdiff(ls(), c("cores", "species")))
 
 # read in thinned data
 data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
@@ -36,7 +12,10 @@ data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.
 
 # convert presence-absence to ordered factor
 data <- data %>% mutate(pa = as.factor(pa))
-data$pa <- ordered(data$pa, levels = c("presence", "absence"))
+
+# set presence as reference level
+data <- data %>%
+  mutate(pa = relevel(pa, ref = "presence")) # presence is 1, absence is 0
 
 # list all possible combinations of predictors (27)
 temps <- c("avg_temp", "avg_min_temp", "avg_max_temp")
@@ -51,45 +30,42 @@ pred_combos <- expand.grid(temp = temps, prec = precips, now = nows)
 
 # loop over each combo
 for(i in 1:27){
-  
+ 
   # get predictors
   predictors <- pred_combos[i,] %>%
     pivot_longer(1:3) %>%
     pull(value) %>%
     as.character()
   
+
   # isolate dataset with only these predictors
   data2 <- data %>%
     select(all_of(predictors), pa, sector)
   
-  #check for NAs and impute
-  if(sum(is.na(data)) > 0){
-    mice <- miceRanger(data, m=1)
-    data <- completeData(mice)[[1]]
-  }
-  
-  #define Maxent
-  max_mod <- maxent() %>%
+  #define GAM
+  gam_mod <- gen_additive_mod() %>%
     set_mode("classification") %>%
-    set_engine("maxnet") %>% #use maxnet package 
-    set_args(feature_classes = tune(), #tune feature classes
-             regularization_multiplier = tune()) #tune regularization multiplier
+    set_engine("mgcv") %>% #use mgcv package 
+    set_args(select_features = F, 
+             adjust_deg_free = tune())
+  
+  # get columns from data
+  cols <- names(data2)[!names(data2) %in% c("pa", "sector")]
+  
+  # create formula from columns
+  model_formula <- as.formula(paste("pa ~", paste(paste0("s(", cols, ", bs = 'ts', k = 5)"), 
+                                                  collapse = " + ")))
   
   #create workflow
-  max_wf <- workflow() %>%
-    add_model(max_mod)
+  gam_wf <- workflow() %>%
+    add_model(gam_mod,
+              formula = model_formula)  
+
+  # degrees of freedom to tune over
+  adjust_deg_free <- c(0.5, 1, 1.5, 2)
   
-  # define regularization multiplier values to vary over (Morales 2017)
-  #regularization_multiplier <- c(0.5, 1, 2) # for quicker test runs
-  regularization_multiplier <- c(1, 2, 5, 10, 15, 20)
-  
-  # define feature_classes to tune over (all combinations of lqpht up to 2 classes)
-  #feature_classes <- c("lq", "lp", "lh", "qp", "qh", "ph") # for quicker test runs
-  feature_classes <- c("l", "q", "t", "h", "lq", "hq", "lqp", "lqt", "hqp", "hqt", "lqhpt", "hqpt")
-  
-  #create tuning grid
-  grid <- expand_grid(regularization_multiplier = regularization_multiplier,
-                      feature_classes = feature_classes)
+  # tuning grid
+  grid <- expand_grid(adjust_deg_free = adjust_deg_free)  
   
   # set number of folds to number of sectors
   v <- length(unique(data$sector))
@@ -103,26 +79,24 @@ for(i in 1:27){
 
   #define formula for modelling
   rec <- recipe(pa ~ ., data = data2)  %>%
-    update_role(sector, new_role = "ID") %>%
-    step_downsample(pa)
-  
+    update_role(sector, new_role = "ID")
+    
   #update workflow
-  max_wf <- max_wf %>%
-    add_recipe(rec)
-  
+  gam_wf <- gam_wf %>%
+    add_recipe(rec) 
+
   # enable parallelisation
-  cores <- 10
   plan(multisession, workers = cores)
   
   #run models with tuning
-  tun <- tune_grid(max_wf,
+  tun <- tune_grid(gam_wf,
                    resamples = folds,
                    grid = grid,
                    metrics = sdm_metric_set(),
                    control = control_grid(verbose=F)) 
   
   #get metric scores for each tuning value
-  metrics <- collect_metrics(tun, summarize = F)
+  metrics <- collect_metrics(tun, summarize = F)  
   
   #extract best model
   best <- show_best(tun, metric = "tss_max") %>%
@@ -141,8 +115,7 @@ for(i in 1:27){
   
   # print completion
   print(paste0(i, " of 27 complete"))
-  
-}
+} 
 
 # get the best predictor index from comparison
 i <- all_best %>%
@@ -160,31 +133,30 @@ predictors <- pred_combos[i,] %>%
 data2 <- data %>%
   select(all_of(predictors), pa)
 
-# get the best hyperparameter values from comparison
-best_reg_mult <- all_best %>%
+# get the best adjust_deg_free value from comparison
+best_adf <- all_best %>%
   arrange(desc(mean)) %>%
   slice(1) %>%
-  pull(regularization_multiplier)
+  pull(adjust_deg_free)
 
-best_feat_class <- all_best %>%
-  arrange(desc(mean)) %>%
-  slice(1) %>%
-  pull(feature_classes)
-
-#set up best model
-best_mod <- maxent() %>%
-  set_engine(engine = "maxnet") %>%
+#set up model
+best_mod <- gen_additive_mod() %>%
+  set_engine(engine = "mgcv") %>%
   set_mode("classification") %>%
-  set_args(regularization_multiplier = best_reg_mult,
-           feature_classes = best_feat_class)
+  set_args(select_features = F, 
+           adjust_deg_free = best_adf) 
+
+# create formula from predictors
+model_formula <- as.formula(paste("pa ~", paste(paste0("s(", predictors, ", bs = 'ts', k = 5)"), 
+                                                collapse = " + ")))
 
 #create new workflow
 best_wf <- workflow() %>%
-  add_model(best_mod)
+  add_model(best_mod,
+            formula = model_formula)
 
 #define formula for modelling
-rec <- recipe(pa ~ ., data = data2) %>%
-  step_downsample(pa)
+rec <- recipe(pa ~ ., data = data2)
 
 #update workflow
 best_wf <- best_wf %>%
@@ -193,6 +165,24 @@ best_wf <- best_wf %>%
 #run best model on all data
 best_fit <- best_wf %>%
   fit(data2)
+
+# convert pb to binary code for GAMs
+data3 <- data2 %>%
+  mutate(pa = ifelse(pa == "presence", 1, 0)) # convert to binary code
+
+# get the adjust_deg_free value for the best model
+k_val <- best_adf * 5
+k_val <- round(k_val, 0)
+
+# update formula to use the best k value 
+model_formula2 <- as.formula(paste("pa ~", 
+                                   paste(paste0("s(", predictors, ", bs = 'ts', k = k_val)"), 
+                                         collapse = " + ")))
+
+# fit GAM with mgcv for extracting supplementary info
+gam1 <- mgcv::gam(model_formula2, 
+                  data = data3, 
+                  family = "binomial")
 
 
 #---------------------------------------------
@@ -219,27 +209,28 @@ metrics <- metrics %>%
 
 # only keep relevant columns
 metrics <- metrics %>%
-  dplyr::select(regularization_multiplier, feature_classes, mean, std_err, predictors)
+  dplyr::select(adjust_deg_free, mean, std_err, predictors)
 
 # export
 saveRDS(metrics,
-        paste0("output/climatic model/maxent/", species, "_cbi_scores.rds"))
+        paste0("output/climatic model/generalised additive models/", species, "_cbi_scores.rds"))
 
 
 # 3b. Variable Importance Scores
-library(DALEXtra)
-explainer <- explain_tidymodels(model = best_fit, 
-                                data = dplyr::select(data2, -pa),
-                                y = as.integer(data2$pa),
-                                verbose = T)
+
+# explain model
+explainer <- explain(model = gam1, 
+                     data = dplyr::select(data3, -pa),
+                     y = (data3$pa),
+                     verbose = T)
 
 # compute variable importance scores
-vip_scores <- model_parts(explainer = explainer)
+vip_scores <- model_parts(explainer)
 
 # get scores from vip_scores
 vi_scores <- vip_scores %>%
   filter(!variable %in% c("_full_model_", "subarea", "_baseline_")) %>%
-  mutate(dropout_loss = (1 - dropout_loss) * 100)  %>%
+  mutate(dropout_loss = dropout_loss * 100)  %>%
   select(variable, dropout_loss)
 
 # calculate mean per variable
@@ -254,48 +245,39 @@ vi_scores <- vi_scores %>%
   rename(Variable = variable,
          Importance = dropout_loss)
 
-# plot
-ggplot(vi_scores, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importance") +
-  theme_bw()
-
 # export
 saveRDS(vi_scores,
-        paste0("output/climatic model/maxent/", species, "_varimp_scores.rds"))
+        paste0("output/climatic model/generalised additive models/", species, "_varimp_scores.rds"))
 
 
 # 3c. Partial Dependence Plot Data
 
-#compute partial dependence
-pdps <- model_profile(explainer, 
-                      variables = names(data2)[!names(data2) %in% c("pa")],
-                      N = 500)
+# get smooths
+sm <- smooth_estimates(gam1, n = 1000) %>%
+  add_confint()
 
-#extract pdp predictive values
-pdp_ovr <- as_tibble(pdps$agr_profiles) %>%
-  rename(x = `_x_`, yhat = `_yhat_`, var = `_vname_`) %>%
-  dplyr::select(var, x, yhat) %>%
-  mutate(yhat = 1-yhat)
+# backtransform smooths
+sm <- sm %>%
+  mutate(.estimate = plogis(.estimate))
 
-# plot PDPs
-p1 <- ggplot(pdp_ovr, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p1
+# pivot longer for plotting
+sm <- sm %>%
+  pivot_longer(cols = c(all_of(predictors)),
+               names_to = "var",
+               values_to = "x") %>%
+  drop_na(x)
 
-# export PDP values
-saveRDS(pdp_ovr,
-        paste0("output/climatic model/maxent/", species, "_pdp_values.rds"))
+# format same as PDPs
+sm <- sm %>%
+  rename(yhat = .estimate) %>%
+  select(var, x, yhat)
+
+# export
+saveRDS(sm,
+        paste0("output/climatic model/generalised additive models/", species, "_pdp_values.rds"))
 
 # remove large DALEXtra objects
-rm(pdps, pdp_ovr, explainer)
-
+rm(explainer)
 
 
 #---------------------------------------------
@@ -303,5 +285,4 @@ rm(pdps, pdp_ovr, explainer)
 #---------------------------------------------
 
 saveRDS(best_fit,
-        paste0("output/climatic model/maxent/", species, "_maxent_model.rds"))
-
+        paste0("output/climatic model/generalised additive models/", species, "_gam_model.rds"))

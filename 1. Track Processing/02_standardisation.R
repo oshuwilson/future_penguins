@@ -16,9 +16,9 @@ rm(list=ls())
 # 1. Read in tracking data and relevant metadata
 
 #set required variables
-species_code <- "ADPE" #the 4-letter RAATD code
-study_code <- "NSF_Palmer_ADPE" #Dataset identifier
-device_type <- "GPS" #either PTT, GLS, or GPS
+species_code <- "EMPE" #the 4-letter RAATD code
+study_code <- "Kooyman_Cape_Washington" #Dataset identifier
+device_type <- "PTT" #either PTT, GLS, or GPS
 zonediff <- 0 #timezone difference relative to UTC
 
 ##----------------##

@@ -19,8 +19,8 @@ source("~/OneDrive - University of Southampton/Documents/Chapter 03/code/R/meta_
 # 1. Read in and format track dataframe
 
 #set species, study and colony/region code
-species_code <- "ADPE"
-study_code <- "NSF_Palmer_ADPE"
+species_code <- "EMPE"
+study_code <- "Kooyman_Cape_Washington"
 
 #check that study hasn't already been processed before beginning
 all_meta <- readRDS("~/OneDrive - University of Southampton/Documents/PenguinTrack/meta/working_metadata.RDS")
@@ -105,15 +105,15 @@ meta <- get_names(meta, species_code)
 # add all manually
 meta <- meta %>%
   mutate(
-    #sex = , #either male, female, or unknown
+    sex = "unknown", #either male, female, or unknown
     age_class = "adult", #either adult, juvenile, or unknown
-    device_type = "GPS", #either GPS, PTT, or GLS
-    #deployment_site = "Harmony Point, South Shetland Islands", # name of colony and region
-    deployment_decimal_longitude = NA, # lon of colony - use NA if different for different individuals
-    deployment_decimal_latitude = NA, # lat of colony - use NA if different for different individuals
-    data_contact = "Megan Cimino", # contact who provided the data
-    contact_email = "mecimino@ucsc.edu", # email of contact
-    file_name = files[2], # name of file, should be files by default
+    device_type = "PTT", #either GPS, PTT, or GLS
+    deployment_site = "Cape Washington, Ross Sea", # name of colony and region
+    deployment_decimal_longitude = 165.393, # lon of colony - use NA if different for different individuals
+    deployment_decimal_latitude = -74.643, # lat of colony - use NA if different for different individuals
+    data_contact = "Kimberley Goetz", # contact who provided the data
+    contact_email = "kim.goetz@noaa.gov", # email of contact
+    file_name = files, # name of file, should be files by default
     keepornot = NA # leave as NA
   )
 

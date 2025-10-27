@@ -15,7 +15,7 @@ setwd("~/OneDrive - University of Southampton/Documents/PenguinTrack")
 }
 
 # define species
-species <- "CHPE"
+species <- "KIPE"
 
 # get max velocity
 vmax <- read_csv("~/OneDrive - University of Southampton/Documents/RAATD 2.0/Data/speed_filters.csv",
@@ -56,10 +56,6 @@ tracks <- tracks %>%
   mutate(new_id = cumsum(new_id)) %>%
   mutate(new_id = paste(id, new_id, sep = "_")) %>%
   ungroup()
-
-# append metadata to tracks
-tracks <- tracks %>%
-  left_join(select(meta, individual_id, device_type, device_type))
 
 # split into PTT and GPS
 ptt_tracks <- tracks %>%

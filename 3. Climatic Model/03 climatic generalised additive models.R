@@ -2,9 +2,6 @@
 # Fit Climatic Generalised Additive Models
 #----------------------------------------------
 
-# select predictors with boyce index or maximum log likelihood?
-# group cross validation?
-
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
@@ -60,10 +57,11 @@ for(i in 1:27){
     pull(value) %>%
     as.character()
   
+
   # isolate dataset with only these predictors
   data2 <- data %>%
-    select(all_of(predictors), pa)
-
+    select(all_of(predictors), pa, sector)
+  
   #define GAM
   gam_mod <- gen_additive_mod() %>%
     set_mode("classification") %>%
@@ -72,7 +70,7 @@ for(i in 1:27){
              adjust_deg_free = tune())
   
   # get columns from data
-  cols <- names(data2)[!names(data2) %in% c("pa")]
+  cols <- names(data2)[!names(data2) %in% c("pa", "sector")]
   
   # create formula from columns
   model_formula <- as.formula(paste("pa ~", paste(paste0("s(", cols, ", bs = 'ts', k = 5)"), 
@@ -89,20 +87,27 @@ for(i in 1:27){
   # tuning grid
   grid <- expand_grid(adjust_deg_free = adjust_deg_free)  
   
+  # set number of folds to number of sectors
+  v <- length(unique(data$sector))
+
   #create cross-validation folds
-  folds <- vfold_cv(data = data2, 
-                    v = 10)
+  folds <- group_vfold_cv(data = data2,
+                          group = sector, #split training/testing data by ocean sector
+                          v = v, #number of folds
+                          balance = "groups" #one subarea per fold
+  )
 
   #define formula for modelling
-  rec <- recipe(pa ~ ., data = data2)
+  rec <- recipe(pa ~ ., data = data2)  %>%
+    update_role(sector, new_role = "ID")
     
   #update workflow
   gam_wf <- gam_wf %>%
     add_recipe(rec) 
 
   # enable parallelisation
-  # cores <- 10
-  # plan(multisession, workers = cores)
+  cores <- 10
+  plan(multisession, workers = cores)
   
   #run models with tuning
   tun <- tune_grid(gam_wf,
@@ -115,8 +120,8 @@ for(i in 1:27){
   metrics <- collect_metrics(tun, summarize = F)  
   
   #extract best model
-  best <- show_best(tun, metric = "boyce_cont") %>%
-    filter(n == 10)
+  best <- show_best(tun, metric = "tss_max") %>%
+    filter(n == v)
   
   # append predictors
   best <- best %>%

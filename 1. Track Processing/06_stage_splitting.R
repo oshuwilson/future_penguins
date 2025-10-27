@@ -14,13 +14,10 @@ library(tidyterra)
 coast <- vect("~/OneDrive - University of Southampton/Documents/Chapter 03/data/coast_vect.RDS")
 
 # define species
-species <- "CHPE"
+species <- "KIPE"
 
 # read in state space modelled tracks for this species
-gps_tracks <- readRDS(paste0("ssm_tracks/", species, "_gps_state_space_modelled.RDS"))
-ptt_tracks <- readRDS(paste0("ssm_tracks/", species, "_ptt_state_space_modelled.RDS"))
-tracks <- rbind(gps_tracks, ptt_tracks)
-rm(gps_tracks, ptt_tracks)
+tracks <- readRDS(paste0("ssm_tracks/", species, "_ssm_qc.RDS"))
 
 # read in metadata for this species
 meta <- readRDS("meta/working_metadata.RDS") %>%
@@ -44,15 +41,21 @@ stage_dates <- readRDS(paste0("auto_stages/", species, "config.RDS"))
 # 2. Calculate the distance of locations from deployment sites by ID
 #----------------------------------------------------------------------
 
+# create combined ID column
+tracks <- tracks %>%
+  mutate(id = paste(individual_id, device_id))
+meta <- meta %>%
+  mutate(id = paste(individual_id, device_id))
+
 # run over each ID
-for(i in unique(tracks$individual_id)){
+for(i in unique(tracks$id)){
   
   # tracks for this id
-  trax <- tracks %>% filter(individual_id == i)
+  trax <- tracks %>% filter(id == i)
   
   # deployment lat/lon for this id
   dep <- meta %>%
-    filter(individual_id == i) %>%
+    filter(id == i) %>%
     select(deployment_decimal_longitude, deployment_decimal_latitude) %>%
     rename(lon = deployment_decimal_longitude, lat = deployment_decimal_latitude)
   
@@ -69,7 +72,7 @@ for(i in unique(tracks$individual_id)){
     rename(lon = x, lat = y)
   
   # append to all tracks
-  if(i == unique(tracks$individual_id)[1]) {
+  if(i == unique(tracks$id)[1]) {
     all_tracks <- trax
   } else {
     all_tracks <- bind_rows(all_tracks, trax)

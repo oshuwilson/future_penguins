@@ -1,30 +1,10 @@
-#------------------------------------------------
-# Fit Climatic Bayesian Additive Regression Trees
-#------------------------------------------------
-
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
-
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
+#----------------------------------------------
+# Fit Climatic MaxEnt
+#----------------------------------------------
 
 # 1. Configuration 
 
-# set seed
-set.seed(777)
-
-# define species 
-species <- "ADPE"
+rm(list=setdiff(ls(), c("cores", "species")))
 
 # read in thinned data
 data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
@@ -46,7 +26,7 @@ pred_combos <- expand.grid(temp = temps, prec = precips, now = nows)
 #---------------------------------------
 
 # loop over each combo
-for(i in 1:27){ 
+for(i in 1:27){
   
   # get predictors
   predictors <- pred_combos[i,] %>%
@@ -58,19 +38,34 @@ for(i in 1:27){
   data2 <- data %>%
     select(all_of(predictors), pa, sector)
   
-  #define BART
-  bart_mod <- parsnip::bart() %>%
+  #check for NAs and impute
+  if(sum(is.na(data)) > 0){
+    mice <- miceRanger(data, m=1)
+    data <- completeData(mice)[[1]]
+  }
+  
+  #define Maxent
+  max_mod <- maxent() %>%
     set_mode("classification") %>%
-    set_engine("dbarts") %>%
-    set_args(trees = tune()) #tune trees
+    set_engine("maxnet") %>% #use maxnet package 
+    set_args(feature_classes = tune(), #tune feature classes
+             regularization_multiplier = tune()) #tune regularization multiplier
   
   #create workflow
-  bart_wf <- workflow() %>%
-    add_model(bart_mod)
+  max_wf <- workflow() %>%
+    add_model(max_mod)
   
-  #define tree values to vary over 
-  trees <- c(50, 100, 200, 300)
-  grid <- expand_grid(trees = trees)
+  # define regularization multiplier values to vary over (Morales 2017)
+  #regularization_multiplier <- c(0.5, 1, 2) # for quicker test runs
+  regularization_multiplier <- c(1, 2, 5, 10, 15, 20)
+  
+  # define feature_classes to tune over (all combinations of lqpht up to 2 classes)
+  #feature_classes <- c("lq", "lp", "lh", "qp", "qh", "ph") # for quicker test runs
+  feature_classes <- c("l", "q", "t", "h", "lq", "hq", "lqp", "lqt", "hqp", "hqt", "lqhpt", "hqpt")
+  
+  #create tuning grid
+  grid <- expand_grid(regularization_multiplier = regularization_multiplier,
+                      feature_classes = feature_classes)
   
   # set number of folds to number of sectors
   v <- length(unique(data$sector))
@@ -86,25 +81,24 @@ for(i in 1:27){
   rec <- recipe(pa ~ ., data = data2)  %>%
     update_role(sector, new_role = "ID") %>%
     step_downsample(pa)
-
+  
   #update workflow
-  bart_wf <- bart_wf %>%
+  max_wf <- max_wf %>%
     add_recipe(rec)
   
   # enable parallelisation
-  cores <- 10
   plan(multisession, workers = cores)
   
   #run models with tuning
-  tun <- tune_grid(bart_wf,
+  tun <- tune_grid(max_wf,
                    resamples = folds,
                    grid = grid,
                    metrics = sdm_metric_set(),
                    control = control_grid(verbose=F)) 
   
   #get metric scores for each tuning value
-  metrics <- collect_metrics(tun, summarize = F)  
-
+  metrics <- collect_metrics(tun, summarize = F)
+  
   #extract best model
   best <- show_best(tun, metric = "tss_max") %>%
     filter(n == v)
@@ -122,6 +116,7 @@ for(i in 1:27){
   
   # print completion
   print(paste0(i, " of 27 complete"))
+  
 }
 
 # get the best predictor index from comparison
@@ -140,17 +135,23 @@ predictors <- pred_combos[i,] %>%
 data2 <- data %>%
   select(all_of(predictors), pa)
 
-# get the best number of trees from comparison
-best_trees <- all_best %>%
+# get the best hyperparameter values from comparison
+best_reg_mult <- all_best %>%
   arrange(desc(mean)) %>%
   slice(1) %>%
-  pull(trees)
+  pull(regularization_multiplier)
 
-#set up model
-best_mod <- parsnip::bart() %>%
-  set_engine(engine = "dbarts") %>%
+best_feat_class <- all_best %>%
+  arrange(desc(mean)) %>%
+  slice(1) %>%
+  pull(feature_classes)
+
+#set up best model
+best_mod <- maxent() %>%
+  set_engine(engine = "maxnet") %>%
   set_mode("classification") %>%
-  set_args(trees = best_trees)
+  set_args(regularization_multiplier = best_reg_mult,
+           feature_classes = best_feat_class)
 
 #create new workflow
 best_wf <- workflow() %>%
@@ -193,120 +194,71 @@ metrics <- metrics %>%
 
 # only keep relevant columns
 metrics <- metrics %>%
-  dplyr::select(trees, mean, std_err, predictors)
+  dplyr::select(regularization_multiplier, feature_classes, mean, std_err, predictors)
 
 # export
 saveRDS(metrics,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_cbi_scores.rds"))
+        paste0("output/climatic model/maxent/", species, "_cbi_scores.rds"))
 
 
 # 3b. Variable Importance Scores
-library(dbarts)
+explainer <- explain_tidymodels(model = best_fit, 
+                                data = dplyr::select(data2, -pa),
+                                y = as.integer(data2$pa),
+                                verbose = T)
 
-# extract the underlying dbarts model
-bart1 <- extract_fit_parsnip(best_fit)$fit
+# compute variable importance scores
+vip_scores <- model_parts(explainer = explainer)
 
-# get variable usage counts from posterior
-var_counts <- bart1$varcount
+# get scores from vip_scores
+vi_scores <- vip_scores %>%
+  filter(!variable %in% c("_full_model_", "subarea", "_baseline_")) %>%
+  mutate(dropout_loss = (1 - dropout_loss) * 100)  %>%
+  select(variable, dropout_loss)
 
-# get mean for each variable
-mean_vi <- colMeans(var_counts)
+# calculate mean per variable
+vi_scores <- vi_scores %>%
+  group_by(variable) %>%
+  summarise(dropout_loss = mean(dropout_loss, na.rm = T)) %>%
+  ungroup() %>%
+  arrange(desc(dropout_loss))
 
-# create a data frame with variable names and their importance scores
-vi_scores <- data.frame(Variable = names(mean_vi), 
-                        Importance = mean_vi)
-
-# subtract the minimum VI score
-vi_scores$Importance <- vi_scores$Importance - min(vi_scores$Importance) + 5
-
-# plot
-ggplot(vi_scores, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importance") +
-  theme_bw()
+# match names with formatting of vip::vi output
+vi_scores <- vi_scores %>%
+  rename(Variable = variable,
+         Importance = dropout_loss)
 
 # export
 saveRDS(vi_scores,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_varimp_scores.rds"))
+        paste0("output/climatic model/maxent/", species, "_varimp_scores.rds"))
 
 
 # 3c. Partial Dependence Plot Data
 
-# compute partial depndence values
-part <- pdbart(bart1, pl = F)
+#compute partial dependence
+pdps <- model_profile(explainer, 
+                      variables = names(data2)[!names(data2) %in% c("pa")],
+                      N = 500)
 
-# define initial max and min val as 0
-max_val <- 0
-min_val <- 0
-
-# for each variable
-for(i in 1:length(part$xlbs)){
-  
-  # get the variable name
-  var <- part$xlbs[i]
-  
-  # get the levels of this variable where points are logged
-  levs <- part$levs[[i]]
-  
-  # get the partial dependence values
-  vals <- part$fd[[i]]
-  
-  # get the mean partial dependence value for each level
-  mean_vals <- colMeans(vals)
-  
-  # get the max and min values for this variable
-  max_val_i <- max(vals)
-  min_val_i <- min(vals)
-  
-  # if this is the biggest max val or smallest min val, update
-  if(max_val_i > max_val){
-    max_val <- max_val_i
-  }
-  if(min_val_i < min_val){
-    min_val <- min_val_i
-  }
-  
-  # join into a data frame
-  pdp <- data.frame(var = var, 
-                    x = levs, 
-                    yhat = mean_vals)
-  
-  # join to all vars
-  if(i == 1){
-    pdps <- pdp
-  } else {
-    pdps <- rbind(pdps, pdp)
-  }
-}
-
-# scale yhat by the min and max values
-pdps <- pdps %>%
-  mutate(yhat = (yhat - min_val) / (max_val - min_val)) %>%
-  mutate(yhat = 1 - yhat)
-
-# plot
-p2 <- ggplot(pdps, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p2
+#extract pdp predictive values
+pdp_ovr <- as_tibble(pdps$agr_profiles) %>%
+  rename(x = `_x_`, yhat = `_yhat_`, var = `_vname_`) %>%
+  dplyr::select(var, x, yhat) %>%
+  mutate(yhat = 1-yhat)
 
 # export PDP values
-saveRDS(pdps,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_pdp_values.rds"))
+saveRDS(pdp_ovr,
+        paste0("output/climatic model/maxent/", species, "_pdp_values.rds"))
+
+# remove large DALEXtra objects
+rm(pdps, pdp_ovr, explainer)
+
 
 
 #---------------------------------------------
 # 4. Export the model
 #---------------------------------------------
 
-# butcher and bundle to retain pointers
-bart2 <- butcher::butcher(best_fit)
-bart3 <- bundle::bundle(bart2)
+saveRDS(best_fit,
+        paste0("output/climatic model/maxent/", species, "_maxent_model.rds"))
 
-saveRDS(bart3,
-        paste0("output/climatic model/bayesian additive regression trees/", species, "_bart_model.rds"))

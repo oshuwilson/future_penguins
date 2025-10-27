@@ -23,7 +23,7 @@ v <- length(unique(data$subarea))
 #define BRT
 brt_mod <- boost_tree() %>%
   set_mode("classification") %>%
-  set_engine("lightgbm" #use lightgbm package
+  set_engine("lightgbm", num_threads = 1 #use lightgbm package
   ) %>%
   set_args(trees = tune(),
            tree_depth = tune(), 
@@ -57,17 +57,19 @@ brt_wf <- brt_wf %>%
   add_recipe(rec)
 
 # enable parallelisation
-plan(multisession, workers = cores)
+#plan(multisession, workers = cores)
+plan(sequential)
 
 #run models with tuning
 tun <- tune_grid(brt_wf,
                  resamples = folds,
                  grid = grid,
                  metrics = sdm_metric_set(),
-                 control = control_grid(verbose=F)) 
+                 control = control_grid(verbose=T)) 
 
 #get metric scores for each tuning value
 metrics <- collect_metrics(tun, summarize = F)
+print(metrics)
 
 #extract best model
 best <- show_best(tun, metric = "boyce_cont") %>%

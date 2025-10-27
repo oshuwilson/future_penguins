@@ -2,8 +2,6 @@
 # Extract to background and presence data
 #----------------------------------------
 
-# Remove SSH?
-
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
@@ -15,7 +13,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 extract <- terra::extract
 
 # species
-species <- "CHPE"
+species <- "ADPE"
 
 # stage
 stage <- "chick-rearing"
@@ -33,7 +31,8 @@ tracks <- readRDS(paste0("output/at-sea model/thinned_tracks/", species, "_", st
 trax <- vect(tracks, geom = c("lon", "lat"), crs = "epsg:4326")
 
 # read in background samples
-bg <- readRDS(paste0("output/at-sea model/background/", species, " ", stage, " background.RDS"))
+bg <- readRDS(paste0("output/at-sea model/background/", species, " ", stage, " background.RDS")) %>%
+  project("epsg:4326")
 
 # create pa column
 trax$pa <- "presence"
@@ -83,10 +82,6 @@ print("mld")
 data <- dynamic_extract("sal", data, crop = F)
 print("sal")
 
-# ssh
-data <- dynamic_extract("ssh", data, crop = F)
-print("ssh")
-
 # sic
 data <- dynamic_extract("sic", data, crop = F)
 data$sic[is.na(data$sic)] <- 0 # SIC values of 0 print as NA in GLORYS
@@ -108,5 +103,5 @@ print(paste0(species, " ", stage, " extracted"))
 # 3. Bonus - plots
 
 # change x for var of interest
-ggplot(data, aes(x = sst)) +
+ggplot(data, aes(x = sic)) +
   geom_histogram(aes(fill = pa), alpha = 0.5)

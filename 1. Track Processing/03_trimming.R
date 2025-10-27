@@ -16,8 +16,8 @@ rm(list=ls())
 # 1. Read in standardised tracks and relevant metadata
 
 #set required variables
-species_code <- "ADPE"
-study_code <- "NSF_Palmer_ADPE"
+species_code <- "EMPE"
+study_code <- "Kooyman_Cape_Washington"
 
 ##----------------##
 ## User Input End ##

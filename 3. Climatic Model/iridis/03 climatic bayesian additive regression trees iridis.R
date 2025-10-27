@@ -2,29 +2,9 @@
 # Fit Climatic Bayesian Additive Regression Trees
 #------------------------------------------------
 
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
-
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
-
 # 1. Configuration 
 
-# set seed
-set.seed(777)
-
-# define species 
-species <- "ADPE"
+rm(list=setdiff(ls(), c("cores", "species")))
 
 # read in thinned data
 data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
@@ -92,7 +72,6 @@ for(i in 1:27){
     add_recipe(rec)
   
   # enable parallelisation
-  cores <- 10
   plan(multisession, workers = cores)
   
   #run models with tuning
@@ -201,7 +180,6 @@ saveRDS(metrics,
 
 
 # 3b. Variable Importance Scores
-library(dbarts)
 
 # extract the underlying dbarts model
 bart1 <- extract_fit_parsnip(best_fit)$fit
@@ -218,13 +196,6 @@ vi_scores <- data.frame(Variable = names(mean_vi),
 
 # subtract the minimum VI score
 vi_scores$Importance <- vi_scores$Importance - min(vi_scores$Importance) + 5
-
-# plot
-ggplot(vi_scores, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importance") +
-  theme_bw()
 
 # export
 saveRDS(vi_scores,
@@ -284,16 +255,6 @@ for(i in 1:length(part$xlbs)){
 pdps <- pdps %>%
   mutate(yhat = (yhat - min_val) / (max_val - min_val)) %>%
   mutate(yhat = 1 - yhat)
-
-# plot
-p2 <- ggplot(pdps, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p2
 
 # export PDP values
 saveRDS(pdps,

@@ -18,10 +18,10 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
 # candidate variables
 candidate_vars <- c("depth", "slope", "sst", "sal", 
-                    "sic", "curr", "mld")
+                    "sic", "curr", "mld", "dshelf")
 
 # define species and stage
-species <- "CHPE"
+species <- "ADPE"
 stage <- "chick-rearing"
 
 # read in extracted data
@@ -89,7 +89,7 @@ xdata <- regdata %>% dplyr::select(all_of(regression_vars))
 ydata <- regdata %>% rename(pb = pb1) %>% pull(pb)
 
 # run varimp.diag
-p1 <- varimp.diag(xdata, ydata, iter = 30)
+p1 <- varimp.diag(xdata, ydata, iter = 20)
 p1
 
 # get data from plot
@@ -108,39 +108,23 @@ p1data %>%
 # criteria: is the VarImp below 0.05 for any number of trees?
 # criteria: does the VarImp decline when using 10 AND 20 trees?
 # criteria: does the range of VarImp scores for that variable exceed 0.1 (if declining with fewer trees)?
-key_reg_vars <- c("depth", "sst", "slope", "sic", "sal", "mld")
+key_reg_vars <- c("depth", "sst", "slope", "sic", "sal", "dshelf")
 
 # set regression dataframe to use key_vars only
 regdata <- data %>%
   dplyr::select(pb, subarea, all_of(key_reg_vars))
-
-# # run variable.step - to select the top variables 
-# key_reg_vars <- variable.step(xdata, ydata, iter = 50)
-# 
-# 
-# # get RMSE plot
-# p3 <- last_plot()
-# 
-# # get data from plot
-# p3data <- p3 %>% pluck("data")
 
 # save regression dataframe
 saveRDS(regdata,
         paste0("output/at-sea model/model_data/", species, "_", stage, "_data.rds"))
 
 # save the plots
-# ggsave(paste0("output/at-sea model/varselection/", species, "_", stage, "_RMSE_regression.png"),
-#        p3, width = 10, height = 10)
 ggsave(paste0("output/at-sea model/varselection/", species, "_", stage, "_BART_varimp.png"),
        p1, width = 10, height = 10)
 
 # save varimp data
 write_csv(p1data, 
           paste0("output/at-sea model/varselection/", species, "_", stage, "_BART_varimp.csv"))
-
-# # save RMSE data
-# write_csv(p3data, 
-#           paste0("output/at-sea model/varselection/", species, "_", stage, "_RMSE_regression.csv"))
 
 # save key variable list
 key_reg_var_df <- data.frame(key_vars = key_reg_vars, species_name = species, stage_name = stage)

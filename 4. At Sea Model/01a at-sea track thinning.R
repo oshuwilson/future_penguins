@@ -10,7 +10,7 @@ library(terra)
 library(GeoThinneR)
 
 # set species
-species <- "CHPE"
+species <- "ADPE"
 
 # set breeding stage
 this_stage <- "chick-rearing"
@@ -47,28 +47,14 @@ tracks %>%
   arrange(desc(n_tracks))
 
 #----------------------------------------------
-# 1. Downsample tracks for each subarea 
+# 1. Subsample tracks
 #----------------------------------------------
 
-# read in depth raster for thinning
-depth <- rast("~/OneDrive - University of Southampton/Documents/Predictor Data/processing/dShelf/depth.nc")
-
-# thin spatially to one point per grid cell
-quick_thin <- thin_points(
-  data = tracks,
-  lon_col = "lon",
-  lat_col = "lat",
-  method = "grid",
-  raster_obj = depth
-)
-
-# get thinned data
-thinned <- largest(quick_thin)
-
 # limit to one point per individual per day
-thinned <- thinned %>%
+thinned <- tracks %>%
   group_by(individual_id, device_id, as_date(date)) %>%
-  slice_sample(n = 1)
+  slice_sample(n = 1) %>%
+  ungroup()
 
 # plot
 thinned %>%
@@ -85,3 +71,4 @@ thinned %>%
 
 # export
 saveRDS(thinned, paste0("output/at-sea model/thinned_tracks/", species, "_", this_stage, "_thinned.RDS"))
+

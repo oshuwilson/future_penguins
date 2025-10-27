@@ -23,7 +23,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 set.seed(777)
 
 # define species and stage
-species <- "CHPE"
+species <- "ADPE"
 stage <- "chick-rearing"
 
 # read in data
@@ -62,7 +62,7 @@ grid <- expand_grid(learn_rate = learn.rate, tree_depth = tree.depth, trees = tr
 
 #create cross-validation folds
 folds <- group_vfold_cv(data = data, 
-                        group = subarea, #split training/testing data by individual ID
+                        group = subarea, #split training/testing data by subarea
                         v = v, #number of folds
                         balance = "groups" #one subarea per fold
 )
@@ -79,13 +79,14 @@ brt_wf <- brt_wf %>%
 # enable parallelisation
 cores <- 10
 plan(multisession, workers = cores)
+plan(sequential)
 
 #run models with tuning
 tun <- tune_grid(brt_wf,
                  resamples = folds,
                  grid = grid,
                  metrics = sdm_metric_set(),
-                 control = control_grid(verbose=F)) 
+                 control = control_grid(verbose=T)) 
 
 #get metric scores for each tuning value
 metrics <- collect_metrics(tun, summarize = F)

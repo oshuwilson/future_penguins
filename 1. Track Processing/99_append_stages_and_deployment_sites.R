@@ -5,8 +5,8 @@ setwd("~/OneDrive - University of Southampton/Documents/PenguinTrack")
 library(tidyverse)
 
 # define species
-species <- "chinstrap"
-spp_code <- "CHPE"
+species <- "king"
+spp_code <- "KIPE"
 
 # load old data
 tracks <- readRDS(paste0("tracks/", species, ".RDS"))

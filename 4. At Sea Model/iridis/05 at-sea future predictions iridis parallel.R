@@ -72,7 +72,7 @@ foreach(z = 1:8) %dopar% {
     pull(key_vars)
   
   # separate out static and dynamic covariates
-  static_vars <- all_vars[all_vars %in% c("depth", "slope")]
+  static_vars <- all_vars[all_vars %in% c("depth", "slope", "dshelf")]
   dynamic_vars <- all_vars[!all_vars %in% static_vars]
   
   # set out target extent

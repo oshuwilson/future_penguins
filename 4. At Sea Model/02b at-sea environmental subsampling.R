@@ -4,7 +4,6 @@
 
 # adapted from script on Arman Pili's Github
 # https://github.com/UP-macroecology/Pili_EnvSubsampling/blob/master/functions/processData_E_clustering.R
-# supplementary material suggests k-means clustering and umap reduction for explaining the niche
 
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
@@ -17,7 +16,7 @@ library(umap)
 library(dbscan)
 
 # define species and stage
-species <- "CHPE"
+species <- "ADPE"
 stage <- "chick-rearing"
 
 # read in extracted data
@@ -30,7 +29,7 @@ data <- data %>%
 
 # candidate variables
 preds <- c("depth", "slope", "sst", "sal", 
-           "sic", "curr", "mld")
+           "sic", "curr", "mld", "dshelf")
 
 # select variables and other key info
 data <- data %>%
