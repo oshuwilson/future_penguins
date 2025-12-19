@@ -13,8 +13,8 @@ library(rnaturalearth)
 library(CCAMLRGIS)
 
 # define species and stage
-species <- "KIPE"
-this.stage <- "incubation"
+species <- "GEPE"
+this.stage <- "chick-rearing"
 
 # read in tracks for this stage
 tracks <- readRDS(paste0("output/at-sea model/thinned_tracks/", species, "_", this.stage, "_thinned.RDS"))
@@ -82,8 +82,9 @@ plot(coast)
 distances <- distance(trax, coast)
 max_dist <- max(distances, na.rm = T)
 
-# save the max distance value for future runs
+# save the max distance value for future reruns
 saveRDS(max_dist, paste0("output/at-sea model/distance buffers/", species, " ", this.stage, " max dist.rds"))
+# max_dist <- readRDS(paste0("output/at-sea model/distance buffers/", species, " ", this.stage, " max dist.rds"))
 
 # buffer coastline
 buff <- terra::buffer(coast, width = max_dist)
@@ -116,4 +117,3 @@ bg$subarea <- sample(tracks$subarea, nrow(bg), replace = T)
 
 # export
 saveRDS(bg, paste0("output/at-sea model/background/", species, " ", this.stage, " background.RDS"))
-

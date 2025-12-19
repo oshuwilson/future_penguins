@@ -32,8 +32,8 @@ cores <- 78
 set.seed(777)
 
 # define species and stage
-species <- "ADPE"
-stage <- "chick-rearing"
+species <- "GEPE"
+stage <- "incubation"
 
 #---------------------------------------------------
 # 2. Source Modelling Scripts

@@ -210,7 +210,7 @@ saveRDS(vi_scores,
 
 # 3c. Partial Dependence Plot Data
 
-# compute partial depndence values
+# compute partial dependence values
 part <- pdbart(bart1, pl = F)
 
 # define initial max and min val as 0

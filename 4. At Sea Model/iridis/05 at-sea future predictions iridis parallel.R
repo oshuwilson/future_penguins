@@ -219,7 +219,7 @@ foreach(z = 1:8) %dopar% {
     month_preds <- app(month_preds, mean, na.rm = TRUE)
     
     # assign time as 2010 for this month
-    time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+    time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
     
     # get weighting for this month
     weight <- month_props %>%
@@ -311,7 +311,7 @@ foreach(z = 1:8) %dopar% {
     month_preds <- app(month_preds, mean, na.rm = TRUE)
     
     # assign time as 2010 for this month
-    time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+    time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
     
     # get weighting for this month
     weight <- month_props %>%
@@ -404,7 +404,7 @@ foreach(z = 1:8) %dopar% {
     month_preds <- app(month_preds, mean, na.rm = TRUE)
     
     # assign time as 2010 for this month
-    time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+    time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
     
     # get weighting for this month
     weight <- month_props %>%
@@ -496,7 +496,7 @@ foreach(z = 1:8) %dopar% {
     month_preds <- app(month_preds, mean, na.rm = TRUE)
     
     # assign time as 2010 for this month
-    time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+    time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
     
     # get weighting for this month
     weight <- month_props %>%
@@ -655,7 +655,7 @@ foreach(z = 1:8) %dopar% {
     month_preds <- app(month_preds, mean, na.rm = TRUE)
     
     # assign time as 2010 for this month
-    time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+    time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
     
     # get weighting for this month
     weight <- month_props %>%
@@ -713,7 +713,7 @@ foreach(z = 1:8) %dopar% {
   #   (max(values(bart), na.rm = TRUE) - min(values(bart), na.rm = TRUE))
   
   # stack predictions
-  pred_stack <- c(rf, brt, maxent, gam, bart)
+  pred_stack <- c(rf, brt, gam, bart)
   
   # simple ensemble
   simple <- app(pred_stack, mean, na.rm = TRUE)

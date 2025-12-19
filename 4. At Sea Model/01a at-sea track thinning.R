@@ -10,7 +10,7 @@ library(terra)
 library(GeoThinneR)
 
 # set species
-species <- "ADPE"
+species <- "GEPE"
 
 # set breeding stage
 this_stage <- "chick-rearing"
@@ -55,6 +55,21 @@ thinned <- tracks %>%
   group_by(individual_id, device_id, as_date(date)) %>%
   slice_sample(n = 1) %>%
   ungroup()
+
+# read in depth raster to spatially thin data to the same grid
+depth <- rast("~/OneDrive - University of Southampton/Documents/Predictor Data/processing/dShelf/depth.nc")
+
+# thin spatially to one point per grid cell
+quick_thin <- thin_points(
+  data = thinned,
+  lon_col = "lon",
+  lat_col = "lat",
+  method = "grid",
+  raster_obj = depth
+)
+
+# get thinned data
+thinned <- largest(quick_thin)
 
 # plot
 thinned %>%

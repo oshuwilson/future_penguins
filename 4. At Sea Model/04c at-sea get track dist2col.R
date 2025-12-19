@@ -10,46 +10,50 @@ library(terra)
 library(tidyterra)
 
 # define species and stage
-species <- "KIPE"
-stage <- "chick-rearing"
+species <- "EMPE"
+this.stage <- "incubation"
 
 # read in penguin metadata
-meta <- readRDS("data/metadata.RDS")
+meta <- readRDS("data/working_metadata.RDS")
 
-# list all track files for the species and stage
-files <- list.files(path = paste0("data/tracks/", species), full.names = T)
-files <- files[grepl(stage, files)]
+# read in track file
+tracks <- readRDS(paste0("data/tracks/", species, ".RDS")) %>%
+  filter(stage == this.stage)
 
-# for each file
-for(file in files){
+# list all unique deployment sites
+sites <- unique(tracks$deployment_site)
+
+# for each site
+for(this_site in sites){
   
-  # read in tracks
-  tracks <- readRDS(file)
-  
-  # filter metadata to those from this deployment site
-  this_site <- unique(tracks$deployment_site)
+  # filter metadata to this deployment site
   colony <- meta %>%
-    filter(deployment_site == this_site &
-             abbreviated_name == species) %>%
+    filter(deployment_site == this_site) %>%
+           #&
+            # abbreviated_name == species) %>%
     slice(1) %>%
     vect(geom = c("deployment_decimal_longitude", 
                   "deployment_decimal_latitude"),
          crs = "EPSG:4326")
   
+  # isolate tracks from this site
+  these_tracks <- tracks %>%
+    filter(deployment_site == this_site)
+  
   # convert tracks to spatvector
-  tracks <- tracks %>%
+  these_tracks <- these_tracks %>%
     vect(geom = c("lon", "lat"),
          crs = "EPSG:4326")
   
   # calculate distance from tracks to colony
-  dist <- distance(tracks, colony, unit = "km") %>%
+  dist <- distance(these_tracks, colony, unit = "km") %>%
     as.data.frame()
   names(dist) <- "distance"
   dist <- dist %>%
     mutate(colony = this_site)
   
   # combine dist to other colonies
-  if(file == files[1]){
+  if(this_site == sites[1]){
     dist_all <- dist
   } else {
     dist_all <- rbind(dist_all, dist)
@@ -63,4 +67,4 @@ ggplot(dist_all, aes(x=distance)) +
 
 # export
 saveRDS(dist_all, 
-        file = paste0("output/dist2colony/", species, "_", stage, "_track_dists.RDS"))
+        file = paste0("output/at-sea model/dist2colony/", species, "_", this.stage, "_track_dists.RDS"))

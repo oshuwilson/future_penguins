@@ -13,7 +13,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 extract <- terra::extract
 
 # species
-species <- "ADPE"
+species <- "GEPE"
 
 # stage
 stage <- "chick-rearing"
@@ -61,7 +61,7 @@ slope <- rast("E:/Satellite_Data/static/slope/slope.nc")
 data$slope <- extract(slope, data, ID=F)
 
 # dshelf
-dshelf <- rast("E:/Satellite_Data/static/dshelf/dshelf_resampled.nc")
+dshelf <- rast("E:/Satellite_Data/static/dshelf/dshelf.nc")
 data$dshelf <- extract(dshelf, data, ID=F)
 
 # cleanup static
@@ -105,3 +105,4 @@ print(paste0(species, " ", stage, " extracted"))
 # change x for var of interest
 ggplot(data, aes(x = sic)) +
   geom_histogram(aes(fill = pa), alpha = 0.5)
+

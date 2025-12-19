@@ -75,7 +75,7 @@ metrics <- collect_metrics(tun, summarize = F)
 
 #extract best model
 best <- show_best(tun, metric = "boyce_cont") %>%
-  filter(n == v)
+  filter(n == max(n))
 
 #set up model
 best_mod <- maxent() %>%

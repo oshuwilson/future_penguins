@@ -27,7 +27,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 set.seed(777)
 
 # define species 
-species <- "ADPE"
+species <- "CHPE"
 
 # read in thinned data
 data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%

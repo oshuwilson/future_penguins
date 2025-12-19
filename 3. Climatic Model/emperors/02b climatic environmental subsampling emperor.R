@@ -1,0 +1,116 @@
+#-----------------------------------------------------------------------------------
+# Thin  climatic data using an environmental clustering approach (Pili et al. 2025)
+#-----------------------------------------------------------------------------------
+
+# adapted from script on Arman Pili's Github
+# https://github.com/UP-macroecology/Pili_EnvSubsampling/blob/master/functions/processData_E_clustering.R
+
+
+rm(list=ls())
+setwd("/iridisfs/scratch/jcw2g17/penguins/")
+
+library(dplyr)
+library(lubridate)
+library(terra)
+library(tidyterra)
+library(sf)
+library(umap)
+library(dbscan)
+
+# define species options for this run
+species_options <- c("EMPE")
+
+# loop over option
+for(species in species_options){
+  
+  # print species
+  print(species)
+  
+  # read in extracted info
+  data <- readRDS(paste0("output/climatic model/extraction/", species, " extracted.rds"))
+  
+  # remove NAs
+  data <- data %>%
+    na.omit()
+  
+  # predictor column names
+  preds <- c("avg_temp", "avg_min_temp", "avg_max_temp",
+             "avg_prec", "avg_min_prec", "avg_max_prec",
+             "avg_now", "avg_min_now", "avg_max_now",
+             "sip", "fast_ice", "dist2coast")
+  
+  # scale the environmental data
+  scaled <- data %>%
+    select(all_of(preds)) %>%
+    mutate(across(all_of(preds), scale))
+  
+  # dimensionality reduction with umap
+  umap_config <- umap.defaults
+  umap_config$random_state <- 7
+  umap_config$n_neighbors <- 5
+  umap_config$n_components <- 5
+  
+  scaled_umap <- umap(scaled, config = umap_config)$layout %>%
+    data.frame()
+  
+  # clustering with dbscan
+  set.seed(777)
+  cluster <- hdbscan(scaled_umap, minPts = 2)$cluster
+  
+  # bind cluster info
+  data <- data %>%
+    bind_cols(cluster = cluster)
+  
+  # isolate points not assigned to a cluster
+  zeroes <- data %>%
+    filter(cluster == 0)
+  zeroes_pres <- zeroes %>% 
+    filter(pa == "presence")
+  zeroes_abs <- zeroes %>% 
+    filter(pa == "absence")
+  
+  # isolate presences and absences
+  pres <- data %>%
+    filter(pa == "presence")
+  abs <- data %>%
+    filter(pa == "absence")
+  
+  # filter to 1 location per cluster
+  pres <- pres %>%
+    group_by(cluster) %>%
+    sample_n(1) %>%
+    ungroup() %>%
+    bind_rows(zeroes_pres)
+  abs <- abs %>%
+    group_by(cluster) %>%
+    sample_n(1) %>%
+    ungroup() %>%
+    bind_rows(zeroes_abs)
+  
+  # limit further to avoid bias towards antarctic coast in absences
+  small <- abs %>%
+    group_by(subarea) %>%
+    summarise(n = n()) %>%
+    filter(n < 20) %>%
+    pull(subarea)
+  downsampled <- abs %>%
+    filter(!subarea %in% small) %>%
+    group_by(subarea) %>%
+    sample_n(20) %>%
+    ungroup()
+  unchanged <- abs %>%
+    filter(subarea %in% small)
+  thinned <- rbind(downsampled, unchanged)
+  
+  # join the thinned data with the presence data
+  all <- rbind(thinned, pres) %>% 
+    select(-cluster)
+  
+  # convert to terra
+  allx <- all %>% vect(geom = c("x", "y"), crs = "epsg:4326") %>%
+    project("epsg:6932")
+  
+  # export
+  saveRDS(all, paste0("output/climatic model/thinned/", species, " env thinned.rds"))
+  
+}

@@ -10,7 +10,7 @@ library(terra)
 library(tidyterra)
 
 # set species
-species <- "ADPE"
+species <- "GEPE"
 
 # read in colony locations
 colonies <- readxl::read_xlsx(paste0("data/colonies/Final Colonies/", species, "_by_colony.xlsx"))
@@ -107,7 +107,8 @@ col_subareas <- readRDS(paste0("data/colonies/subareas/", species, "_colonies_su
 
 # append to colony extractions
 all_colonies <- all_colonies %>%
-  left_join(col_subareas %>% select(name, subarea)) 
+  left_join(col_subareas %>% select(name, subarea)) %>%
+  distinct()
 
 # export
 saveRDS(all_colonies,

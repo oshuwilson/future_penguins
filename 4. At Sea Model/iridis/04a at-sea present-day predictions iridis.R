@@ -26,7 +26,7 @@ library(bundle)
 
 # define species and stage
 species <- "ADPE"
-stage <- "chick-rearing"
+stage <- "incubation"
 
 #------------------------------------------------------------
 # Compile Raster Stack
@@ -182,7 +182,7 @@ for(this_month in months){
   month_preds <- app(month_preds, mean, na.rm = TRUE)
   
   # assign time as 2010 for this month
-  time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+  time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
   
   # get weighting for this month
   weight <- month_props %>%
@@ -276,7 +276,7 @@ for(this_month in months){
   month_preds <- app(month_preds, mean, na.rm = TRUE)
   
   # assign time as 2010 for this month
-  time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+  time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
   
   # get weighting for this month
   weight <- month_props %>%
@@ -370,7 +370,7 @@ for(this_month in months){
   month_preds <- app(month_preds, mean, na.rm = TRUE)
   
   # assign time as 2010 for this month
-  time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+  time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
   
   # get weighting for this month
   weight <- month_props %>%
@@ -464,7 +464,7 @@ for(this_month in months){
   month_preds <- app(month_preds, mean, na.rm = TRUE)
   
   # assign time as 2010 for this month
-  time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+  time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
   
   # get weighting for this month
   weight <- month_props %>%
@@ -620,7 +620,7 @@ for(this_month in months){
   month_preds <- app(month_preds, mean, na.rm = TRUE)
   
   # assign time as 2010 for this month
-  time(month_preds) <- as.POSIXct(paste0("2010-", this_month, "-01"))
+  time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
   
   # get weighting for this month
   weight <- month_props %>%
@@ -679,7 +679,7 @@ bart <- rast(paste0("penguins/output/at-sea model/predictions/", species, "_", s
 #   (max(values(bart), na.rm = TRUE) - min(values(bart), na.rm = TRUE))
 
 # stack predictions
-pred_stack <- c(rf, brt, maxent, gam, bart)
+pred_stack <- c(rf, brt, gam, bart)
 
 # simple ensemble
 simple <- app(pred_stack, mean, na.rm = TRUE)

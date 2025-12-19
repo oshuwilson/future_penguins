@@ -14,7 +14,7 @@ library(tidyterra)
 #-------------------------------------------------------------------------------
 
 # set species
-species <- "ADPE"
+species <- "MAPE"
 
 # read in background samples
 bg <- readRDS("output/climatic model/background/background template.rds")
@@ -59,7 +59,7 @@ if(species == "ADPE"){
 }
 
 if(species == "CHPE"){
-  target_months <- c(12, 1, 2, 3, 4)
+  target_months <- c(11, 12, 1, 2, 3)
 }
 
 if(species == "GEPE"){ #Gentoo colonies exhibit very different phenologies - Lescroel et al. 2009
@@ -74,7 +74,7 @@ if(species == "GEPE"){ #Gentoo colonies exhibit very different phenologies - Les
 }
 
 if(species == "MAPE"){
-  target_months <- c(12, 1, 2)
+  target_months <- c(11, 12, 1, 2)
 }
 
 if(species == "EMPE"){
@@ -185,7 +185,7 @@ plot(avg_max_now)
 #-------------------------------------------------------------------------------
 
 # convert points to same CRS
-pts <- pts %>% project("epsg:4326")
+pts <- pts %>% project(crs(avg_temp))
 
 # extract fields
 pts$avg_temp <- extract(avg_temp, pts, ID = F)

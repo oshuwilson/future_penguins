@@ -7,7 +7,7 @@ library(tidyterra)
 library(rnaturalearth)
 
 # list species
-species <- "MAPE"
+species <- "GEPE"
 
 # read in colony locations
 colonies <- readxl::read_xlsx(paste0("data/colonies/Final Colonies/", species, "_by_colony.xlsx"))
@@ -26,6 +26,7 @@ land <- ne_countries(scale = 10, returnclass = "sv")
 
 # read in depth raster for GLORYS resolution and crs
 depth <- rast("~/OneDrive - University of Southampton/Documents/Predictor Data/processing/dShelf/depth.nc")
+crs(depth) <- "epsg:4326"
 
 # crop depth to below 40 degrees south
 depth <- crop(depth, ext(-180, 180, -90, -40))
@@ -34,8 +35,8 @@ depth <- crop(depth, ext(-180, 180, -90, -40))
 land <- crop(land, ext(-180, 180, -90, -40))
 
 # project colonies and land to depth raster CRS
-colonies <- project(colonies, crs(depth))
-land <- project(land, crs(depth))
+colonies <- project(colonies, "epsg:4326")
+land <- project(land, "epsg:4326")
 
 # rasterise colonies
 col_rast <- rasterize(colonies, depth)
@@ -65,5 +66,5 @@ plot(colonies, add = T, col = "red")
 
 # export distance raster
 writeCDF(dist_rast, 
-         paste0("output/distance_to_colony/", species, "_dist_to_colony.nc"),
+         paste0("output/at-sea model/dist2colony/", species, "_dist_to_colony.nc"),
          overwrite = T)

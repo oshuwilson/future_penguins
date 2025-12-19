@@ -9,6 +9,11 @@
 
 dynamic_extract <- function(predictor, tracks, crop=TRUE){
   
+  # if any NA dates, print warning message
+  if(any(is.na(tracks$date))){
+    stop("There are NA dates in the tracks data. These will not be preserved in predictor extraction.")
+  }
+  
   #first create a list of the years within the tracks
   tracks$year <- as.factor(year(tracks$date))
   years <- levels(tracks$year)

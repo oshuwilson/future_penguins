@@ -10,7 +10,7 @@ library(terra)
 library(tidyterra)
 
 # set species
-species <- "ADPE"
+species <- "GEPE"
 
 # read in colony locations
 colonies <- readxl::read_xlsx(paste0("data/colonies/Final Colonies/", species, "_by_colony.xlsx"))
@@ -33,16 +33,17 @@ dem_names <- data.frame(
              "Crozet", "Prince Edward", 
              "Macquarie", "Falklands",
              "Heard", "Bouvetoya",
-             "South Orkney Islands", "South Sandwich Islands"),
+             "South Orkney Islands", "South Sandwich Islands", "Chile"),
   dem = c("south_georgia_glo90", "kerguelen_glo90", 
           "crozet_glo90", "prince_edward_islands_glo90",
           "macquarie_glo90", "falklands_glo90",
           "heard_glo90", "bouvet_glo90",
-          "south_orkney_glo90", "south_sandwich_glo90")
+          "south_orkney_glo90", "south_sandwich_glo90", "chile_glo90")
 )
 
 # eliminate regions in dem_names
 regions <- regions[!regions %in% dem_names$region]
+regions
 
 # limit colonies to these regions
 colonies <- colonies %>%
@@ -104,6 +105,7 @@ ggplot(all_colonies, aes(x = elevation)) + geom_histogram()
 ggplot(all_colonies, aes(x = dist2coast)) + geom_histogram()
 ggplot(all_colonies, aes(x = slope)) + geom_histogram()
 ggplot(all_colonies, aes(x = rugosity)) + geom_histogram()
+ggplot(all_colonies, aes(x = wave_exposure)) + geom_histogram()
 
 # read in corresponding subarea names
 col_subareas <- readRDS(paste0("data/colonies/subareas/", species, "_colonies_subareas.rds"))

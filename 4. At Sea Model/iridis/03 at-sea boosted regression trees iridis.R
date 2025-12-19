@@ -73,7 +73,7 @@ print(metrics)
 
 #extract best model
 best <- show_best(tun, metric = "boyce_cont") %>%
-  filter(n == v)
+  filter(n == max(n))
 
 #set up model
 best_mod <- boost_tree() %>%

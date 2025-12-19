@@ -15,7 +15,7 @@ setwd("~/OneDrive - University of Southampton/Documents/PenguinTrack")
 }
 
 # define species
-species <- "KIPE"
+species <- "GEPE"
 
 # get max velocity
 vmax <- read_csv("~/OneDrive - University of Southampton/Documents/RAATD 2.0/Data/speed_filters.csv",

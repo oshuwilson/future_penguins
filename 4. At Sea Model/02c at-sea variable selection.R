@@ -21,7 +21,7 @@ candidate_vars <- c("depth", "slope", "sst", "sal",
                     "sic", "curr", "mld", "dshelf")
 
 # define species and stage
-species <- "ADPE"
+species <- "GEPE"
 stage <- "chick-rearing"
 
 # read in extracted data
@@ -108,7 +108,7 @@ p1data %>%
 # criteria: is the VarImp below 0.05 for any number of trees?
 # criteria: does the VarImp decline when using 10 AND 20 trees?
 # criteria: does the range of VarImp scores for that variable exceed 0.1 (if declining with fewer trees)?
-key_reg_vars <- c("depth", "sst", "slope", "sic", "sal", "dshelf")
+key_reg_vars <- regression_vars[!regression_vars %in% c("")] # removes listed variables
 
 # set regression dataframe to use key_vars only
 regdata <- data %>%
@@ -143,3 +143,4 @@ write_csv(original_scores,
           paste0("output/at-sea model/varselection/", species, "_", stage, "_original_vif.csv"))
 write_csv(final_scores,
           paste0("output/at-sea model/varselection/", species, "_", stage, "_final_vif.csv"))
+

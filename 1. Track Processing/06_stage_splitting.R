@@ -14,7 +14,7 @@ library(tidyterra)
 coast <- vect("~/OneDrive - University of Southampton/Documents/Chapter 03/data/coast_vect.RDS")
 
 # define species
-species <- "KIPE"
+species <- "GEPE"
 
 # read in state space modelled tracks for this species
 tracks <- readRDS(paste0("ssm_tracks/", species, "_ssm_qc.RDS"))
@@ -107,7 +107,7 @@ for(colony_name in colony_names){
   plot(trax, pch = ".")
   
   # erase all points on land
-  trax <- erase(trax, coast)
+  #trax <- erase(trax, coast)
   
   # split up trips
   if(colony_name == "Esperanza, Antarctic Peninsula"){

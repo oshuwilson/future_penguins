@@ -5,8 +5,8 @@ setwd("~/OneDrive - University of Southampton/Documents/PenguinTrack")
 library(tidyverse)
 
 # define species
-species <- "king"
-spp_code <- "KIPE"
+species <- "gentoo"
+spp_code <- "GEPE"
 
 # load old data
 tracks <- readRDS(paste0("tracks/", species, ".RDS"))
@@ -56,6 +56,16 @@ new <- readRDS(paste0("newdata/", spp_code, "_ssm_qc_tracks.RDS"))
 
 # combine old and new tracks
 all_tracks <- bind_rows(all_stage_tracks, new)
+
+# if macaronis, rename early chick-rearing and late chick-rearing
+if(species == "macaroni"){
+  all_tracks <- all_tracks %>%
+    mutate(stage = case_when(
+      stage == "early chick-rearing" ~ "chick-rearing",
+      stage == "late chick-rearing" ~ "pre-moult",
+      TRUE ~ stage
+    ))
+}
 
 # plot chick-rearing and incubation
 all_tracks %>%
