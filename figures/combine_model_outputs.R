@@ -11,8 +11,8 @@ library(terra)
 library(scam)
 
 # define species
-species <- "GEPE"
-longname <- "Gentoo Penguin"
+species <- "KIPE"
+longname <- "King Penguin"
 
 #-------------------------------------------------------------------------------
 # 1. Read in accessible habitat
@@ -253,6 +253,12 @@ plot(bins)
 writeRaster(bins, paste0("output/combined/predictions/", species, "_core_habitat_bins.tif"),
             overwrite = TRUE)
 
+# read in present day suitability bins for plotting
+bins <- rast(paste0("output/combined/predictions/", species, "_core_habitat_bins.tif"))
+
+# read in present day suitability for plotting
+mean_hs_av <- rast(paste0("output/combined/predictions/", species, "_mean_combined_suitability.tif"))
+
 # vectorise bins for plot
 bins_vect <- bins %>%
   as.polygons() %>%
@@ -268,16 +274,15 @@ p1 <- ggplot() +
   geom_spatraster(data = mean_hs_av) +
   geom_spatvector(data = coast, col = NA, fill = "white") +
   geom_spatvector(data = bins_vect, fill = NA, col = "white") +
-  scale_fill_viridis_c(na.value = "white", option = "D", name = "Habitat Suitability") +
+  scale_fill_viridis_c(na.value = "white", option = "D", guide = "none") +
   theme_void() +
-  ggtitle(paste0(longname)) +
   theme(plot.title = element_text(hjust = 0.5))
-p1 + ggview::canvas(width = 8, height = 6)
+p1 + ggview::canvas(width = 8, height = 8)
 
 # export
 ggsave(paste0("output/imagery/combined suitability/", species, "_suitability.png"),
        plot = p1,
-       width = 8, height = 6, units = "in", dpi = 300)
+       width = 8, height = 8, units = "in", dpi = 300)
 
 
 #-------------------------------------------------------------------------------
@@ -534,14 +539,13 @@ p1 <- ggplot() +
   geom_spatraster(data = mean_hs_av %>% project("epsg:6932")) +
   geom_spatvector(data = coast, col = NA, fill = "white") +
   geom_spatvector(data = bins_vect %>% project("epsg:6932"), fill = NA, col = "white") +
-  scale_fill_viridis_c(na.value = "white", option = "D", name = "Habitat Suitability") +
+  scale_fill_viridis_c(na.value = "white", option = "D", guide = "none") +
   theme_void() +
-  ggtitle(paste0(longname)) +
   theme(plot.title = element_text(hjust = 0.5))
-p1 + ggview::canvas(width = 8, height = 6)
+p1 + ggview::canvas(width = 8, height = 8)
 
 # export
 ggsave(paste0("output/imagery/combined suitability/", species, "_suitability.png"),
        plot = p1,
-       width = 8, height = 6, units = "in", dpi = 300)
+       width = 8, height = 8, units = "in", dpi = 300)
 

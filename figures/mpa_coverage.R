@@ -463,83 +463,6 @@ data$type <- recode(data$type,
                     "Highly" = "Highly Protected",
                     "Fully" = "Fully Protected")
 
-
-# calculate mean area per species and ssp
-by_mpa_type <- data %>%
-  group_by(species, ssp, type) %>%
-  summarise(area_km2 = sum(mean_area_km2, na.rm = T))
-
-# scale by max area for the species
-by_mpa_type <- by_mpa_type %>%
-  group_by(species) %>%
-  mutate(present_area = sum(area_km2[ssp == "Present"])) %>%
-  ungroup() %>%
-  mutate(scaled_area = area_km2 / present_area)
-
-p2 <- ggplot(by_mpa_type, aes(x = ssp, y = scaled_area, fill = type)) +
-  geom_bar(stat = "identity", position = "stack", width = 0.7) +
-  coord_flip() +
-  scale_fill_manual(values = c("grey30", "grey60", "#420A68", "#DD513A", "#FCA50A", "#FCFFA4", "#932667")) +
-  labs(x = "", y = "Proportion of Core Habitat Area Scaled to Present Day", fill = "Protection Type") +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1, strip.position = "left") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.05)), breaks = seq(0, 1, 0.2))  +
-  scale_x_discrete(expand = expansion(add = 1.2)) +
-  theme(panel.spacing = unit(-0.01, "cm"),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.major.y = element_blank(),
-        panel.grid.major.x = element_line(color = "grey80"), 
-        strip.background = element_rect(fill = NA, color = "white"),
-        strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0),
-        strip.placement = "outside")
-p2 + ggview::canvas(width = 8, height = 8)
-
-# export plot
-ggsave("text/figures/draft/mpa_coverage/combined_mpa_coverage_specific_barplot.png", p2,
-       width = 8, height = 8)
-
-
-# combine all protected into one category
-by_mpa_type_combined <- data %>%
-  mutate(type = ifelse(type %in% c("Fully Protected", "Highly Protected", "Lightly Protected", "Incompatible", "Unknown"),
-                       "Protected", as.character(type))) %>%
-  group_by(species, ssp, type) %>%
-  summarise(area_km2 = sum(mean_area_km2, na.rm = T))
-
-# scale by max area for the species
-by_mpa_type_combined <- by_mpa_type_combined %>%
-  group_by(species) %>%
-  mutate(present_area = sum(area_km2[ssp == "Present"])) %>%
-  ungroup() %>%
-  mutate(scaled_area = area_km2 / present_area)
-
-# reorder protection type
-by_mpa_type_combined$type <- factor(by_mpa_type_combined$type, levels = c("Unprotected", "Proposed", "Protected"))
-
-p3 <- ggplot(by_mpa_type_combined, aes(x = ssp, y = scaled_area, fill = type)) +
-  geom_bar(stat = "identity", position = "stack", width = 0.7) +
-  coord_flip() +
-  scale_fill_manual(values = c("#d1495b", "#edae49", "#00798c")) +
-  labs(x = "", y = "Proportion of Core Habitat Area Scaled to Present Day", fill = "Protection Type") +
-  theme_minimal() +
-  facet_wrap(~species, ncol = 1, strip.position = "left") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.05)), breaks = seq(0, 1, 0.2))  +
-  scale_x_discrete(expand = expansion(add = 1.2)) +
-  theme(panel.spacing = unit(-0.01, "cm"),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.major.y = element_blank(),
-        panel.grid.major.x = element_line(color = "grey80"), 
-        strip.background = element_rect(fill = NA, color = "white"),
-        strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0),
-        strip.placement = "outside")
-p3
-p3 + ggview::canvas(width = 8, height = 8)
-
-# export plot
-ggsave("text/figures/draft/mpa_coverage/combined_mpa_coverage_barplot.png", p3,
-       width = 8, height = 8)
-
-
 # combine protected areas into no-take zones and others
 by_mpa_type_notake <- data %>%
   mutate(type = case_when(
@@ -563,6 +486,18 @@ by_mpa_type_notake <- by_mpa_type_notake %>%
 # reorder protection type
 by_mpa_type_notake$type <- factor(by_mpa_type_notake$type, levels = c("Unprotected Areas", "Proposed MPAs", 
                                                                       "Existing MPAs: Other", "Existing MPAs: No-Take Zones"))
+
+# recode SSP names to proper formatting
+by_mpa_type_notake <- by_mpa_type_notake %>%
+  mutate(ssp = case_when(
+    ssp == "SSP126" ~ "SSP1-2.6",
+    ssp == "SSP585" ~ "SSP5-8.5",
+    TRUE ~ as.character(ssp)
+  )) 
+
+# reorder
+by_mpa_type_notake$ssp <- factor(by_mpa_type_notake$ssp, levels = c("SSP5-8.5", "SSP1-2.6", "Present"))
+
 # plot
 p4 <- ggplot(by_mpa_type_notake, aes(x = ssp, y = scaled_area, fill = type)) +
   geom_bar(stat = "identity", position = "stack", width = 0.7) +
@@ -578,9 +513,10 @@ p4 <- ggplot(by_mpa_type_notake, aes(x = ssp, y = scaled_area, fill = type)) +
         panel.grid.major.y = element_blank(),
         panel.grid.major.x = element_line(color = "grey80"), 
         strip.background = element_rect(fill = NA, color = "white"),
-        strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0),
-        strip.placement = "outside")
-p4
+        strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0,
+                                         size = 11),
+        strip.placement = "outside",
+        axis.text = element_text(size = 11))
 p4 + ggview::canvas(width = 8, height = 10)
 
 # export plot
@@ -602,13 +538,22 @@ p5 <- ggplot(by_mpa_type_notake, aes(x = ssp, y = scaled_area, fill = type)) +
         panel.grid.major.y = element_blank(),
         panel.grid.major.x = element_line(color = "grey80"), 
         strip.background = element_rect(fill = NA, color = "white"),
-        strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0),
-        strip.placement = "outside")
+        strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0,
+                                         size = 11),
+        strip.placement = "outside",
+        axis.text = element_text(size = 11))
 p5 + ggview::canvas(width = 8, height = 10)
 
 # export plot
 ggsave("text/figures/draft/mpa_coverage/combined_mpa_coverage_notake_proportional_barplot.png", p5,
        width = 8, height = 10)
+
+
+
+#-------------------------------------------------------------------------------
+# Mean/SE Stats for Results Reporting
+#-------------------------------------------------------------------------------
+
 
 # calculate percentages of protected areas per species and ssp
 percentages <- by_mpa_type_notake %>%
@@ -650,8 +595,14 @@ protected_totals_ci <- percentages_ci %>%
 # get standard error as mean difference between lower and upper confidence intervals and mean percentage
 protected_totals_ci <- protected_totals_ci %>%
   mutate(se = (upper_percentage - lower_percentage) / 2)
-precentages_ci <- percentages_ci %>%
+percentages_ci <- percentages_ci %>%
   mutate(se = (upper_percentage - lower_percentage) / 2)
+percentages <- percentages %>% 
+  left_join(percentages_ci) %>%
+  select(species, ssp, type, percentage, se)
+protected_totals <- protected_totals %>%
+  left_join(protected_totals_ci) %>%
+  select(species, ssp, type, percentage, se)
 
 # area stats for each species/scenario
 area <- data %>%
@@ -684,7 +635,10 @@ area_ci <- data %>%
 # calculate standard error as mean difference between lower and upper confidence intervals and mean area diff
 area_ci <- area_ci %>%
   mutate(se = (diff_upper_ci - diff_lower_ci) / 2) %>%
-  select(species, ssp, se)
+  select(species, ssp, se) 
+area_ci <- area_ci %>%
+  left_join(area, by = c("species", "ssp")) %>%
+  select(species, ssp, diff, se)
 
 # summarise area change in each subarea for emperor penguins
 emp <- data %>%

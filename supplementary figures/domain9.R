@@ -61,16 +61,15 @@ kipe_bins <- as.polygons(kipe_bins) %>%
   intersect(this_domain)
 
 # only adelies, chinstraps, and emperors
-p2_present <- ggplot() + 
-  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.5) +
+p2_present <- ggplot() +
+  geom_spatvector(data = this_domain, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.8) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = this_domain, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_present
+p2_present + ggview::canvas(width = 10, height = 10)
 
 
 #-------------------------------------------------------------------------------
@@ -119,15 +118,14 @@ kipe_bins_126 <- kipe_bins_126 %>%
 
 # plot adelies, chinstraps, and emperors
 p2_126 <- ggplot() +
-  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins_126, fill = "#00768B", col = NA, alpha = 0.5) +
+  geom_spatvector(data = this_domain, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.8) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = this_domain, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_126
+p2_126 + ggview::canvas(width = 10, height = 10)
 
 
 #-------------------------------------------------------------------------------
@@ -176,13 +174,12 @@ kipe_bins_585 <- kipe_bins_585 %>%
 
 # plot adelies, chinstraps, and emperors
 p2_585 <- ggplot() +
-  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins_585, fill = "#00768B", col = NA, alpha = 0.5) +
+  geom_spatvector(data = this_domain, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.8) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = this_domain, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
 p2_585
 
@@ -199,13 +196,14 @@ ggsave("text/figures/draft/domainplots/domain9/corehabitat.png", all_grid,
 # bonus plots
 # just plot proposed MPAs, existing MPAs, and the coast
 proposal <- ggplot() +
+  geom_spatvector(data = this_domain, col = "darkred", fill = NA) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-proposal + ggview::canvas(width = 10, height = 7)
+proposal + ggview::canvas(width = 10, height = 10)
 ggsave("text/figures/draft/domainplots/domain9/proposal.png",
-       width = 10, height = 7) 
+       width = 10, height = 10) 
 
 # plot of all domains
 domains <- domains %>% project("epsg:6932")

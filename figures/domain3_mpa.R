@@ -53,14 +53,14 @@ empe_bins <- as.polygons(empe_bins) %>%
 
 # only adelies, and emperors
 p2_present <- ggplot() + 
-  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = weddell, fill = NA, col = "black") +
+  geom_spatvector(data = domain3, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = weddell, fill = NA, col = "grey60", linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface), col = NA) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain1, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_present
+p2_present + ggview::canvas(width = 7, height = 7)
 
 #-------------------------------------------------------------------------------
 # SSP126
@@ -83,15 +83,16 @@ empe_bins_126 <- empe_bins_126 %>%
   intersect(domain3)
 
 # plot adelies and emperors
-p2_126 <- ggplot() +
-  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = weddell, fill = NA, col = "black") + 
+p2_126 <- ggplot() + 
+  geom_spatvector(data = domain3, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = weddell, fill = NA, col = "grey60", linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface), col = NA) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain1, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_126
+p2_126 + ggview::canvas(7,7)
+
 
 #-------------------------------------------------------------------------------
 # SSP585
@@ -114,31 +115,32 @@ empe_bins_585 <- empe_bins_585 %>%
   intersect(domain3)
 
 # plot adelies and emperors
-p2_585 <- ggplot() +
-  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = weddell, fill = NA, col = "black") +
+p2_585 <- ggplot() + 
+  geom_spatvector(data = domain3, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = weddell, fill = NA, col = "grey60", linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface), col = NA) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain1, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_585
+p2_585 + ggview::canvas(7,7)
 
 
 # plot all together
 library(cowplot)
-p2 <- plot_grid(p2_present, p2_126, p2_585, ncol = 1)
-p2 + ggview::canvas(width = 7, height = 14)
+p2 <- plot_grid(p2_present, p2_126, p2_585, ncol = 2)
+p2 + ggview::canvas(width = 14, height = 10)
 ggsave("text/figures/draft/domainplots/domain3/corehabitat.png",
-       width = 7, height = 14)
+       width = 14, height = 10)
 
 
 # bonus plots
 # just plot proposed MPAs, existing MPAs, and the coast
 proposal <- ggplot() +
+  geom_spatvector(data = domain3, fill = NA, col = "darkred") +
   geom_spatvector(data = weddell, aes(fill = name), col = NA) +
   geom_spatvector(data = coast, aes(fill = surface), col = NA) +
-  scale_fill_manual(values = c("grey80", "grey20", "#FFAF87", "#AA9ABA", "#FFAF87",  "#AA9ABA", "#baaa9a"),
+  scale_fill_manual(values = c("grey90", "grey40", "#FFAF87", "#DF7CA8", "#FFAF87",  "#DF7CA8", "#baaa9a"),
                     guide = "none") +
   theme_void()
 proposal + ggview::canvas(width = 12, height = 10)

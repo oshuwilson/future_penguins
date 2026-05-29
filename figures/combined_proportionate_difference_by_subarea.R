@@ -39,14 +39,26 @@ sub0 <- sub0 %>%
 figdata <- figdata %>%
   anti_join(sub0, by = c("species", "common_name"))
 
+# change two subarea names
+figdata$common_name <- recode(figdata$common_name, 
+                              "Enderby-Wilkes West" = "Enderby Land",
+                              "Enderby-Wilkes East" = "Wilkes Land")
+
+# swap eastern and western ross sea
+figdata$common_name <- recode(figdata$common_name, 
+                              "Eastern Ross Sea" = "Temp_Ross_East",
+                              "Western Ross Sea" = "Eastern Ross Sea")
+figdata$common_name <- recode(figdata$common_name,
+                              "Temp_Ross_East" = "Western Ross Sea")
+
 # manually reorder subareas
 figdata$common_name <- factor(figdata$common_name, levels = rev(c("Falklands", "Marion", "Crozet", "Macquarie", "Kerguelen",
                                                                   "Chilean Islands", "Heard", "South Georgia", "South Sandwich", 
                                                                   "Bouvet", "South of Marion", "South of Crozet",
                                                                   "Southwest of Heard", "Southeast of Heard", 
                                                                   "South Orkney", "Antarctic Peninsula", "Amundsen-Bellingshausen Seas", 
-                                                                  "Weddell Sea", "Queen Maud Land", "Enderby-Wilkes West",
-                                                                  "Enderby-Wilkes East", "Eastern Ross Sea", "Western Ross Sea"
+                                                                  "Weddell Sea", "Queen Maud Land", "Enderby Land",
+                                                                  "Wilkes Land", "Eastern Ross Sea", "Western Ross Sea"
 )))
 
 # rename Chile
@@ -54,7 +66,7 @@ figdata$common_name <- recode(figdata$common_name, "Chilean Islands" = "Chile")
 
 # rename species 
 figdata$species <- recode(figdata$species,
-                          "ADPE" = "Adelie",
+                          "ADPE" = "Adélie",
                           "CHPE" = "Chinstrap",
                           "EMPE" = "Emperor",
                           "GEPE" = "Gentoo",
@@ -119,15 +131,24 @@ p1 <- ggplot(figdata, aes(x = common_name, y = diff_prop_mean)) +
         panel.grid.minor.x = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.grid.major.x = element_line(color = "grey75"),
-        strip.text = element_text(face = "bold", size = 12),
-        axis.text.y = element_text(vjust = -0.4)) 
+        strip.text = element_text(face = "bold", size = 12)) 
 p1
 
+# change axis text and axis labels font size
+p1 <- p1 + theme(axis.text.y = element_text(size = 12, vjust = 0),
+                 axis.text.x = element_text(size = 12),
+                 axis.title = element_text(size = 12),
+                 legend.text = element_text(size = 10),
+                 legend.title = element_text(size = 12))
+
 # preview export dims
-p1 + ggview::canvas(width = 12, height = 10)
+p1 + 
+  ggview::canvas(width = 12, height = 10)
 
 # export
 ggsave("text/figures/draft/prop_diff/ggplot_export.svg", p1,
        width = 12, height = 10, units = "in", dpi = 300)
 ggsave("text/figures/draft/prop_diff/ggplot_export.png", p1,
        width = 12, height = 10, units = "in", dpi = 300)
+
+

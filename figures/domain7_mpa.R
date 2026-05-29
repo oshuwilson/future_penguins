@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Evaluate how future-proof the proposed Domain 1 MPA is
+# Evaluate how future-proof the proposed Domain 7 MPA is
 #-------------------------------------------------------------------------------
 
 rm(list=ls())
@@ -40,10 +40,7 @@ plot(coast)
 # read in present day suitability bins
 adpe_bins <- rast("output/combined/predictions/adpe_core_habitat_bins.tif")
 chpe_bins <- rast("output/combined/predictions/chpe_core_habitat_bins.tif")
-gepe_bins <- rast("output/combined/predictions/gepe_core_habitat_bins.tif")
-mape_bins <- rast("output/combined/predictions/mape_core_habitat_bins.tif")
 empe_bins <- rast("output/combined/predictions/empe_core_habitat_bins.tif")
-kipe_bins <- rast("output/combined/predictions/kipe_core_habitat_bins.tif")
 
 # convert to polygons
 adpe_bins <- as.polygons(adpe_bins) %>%
@@ -54,48 +51,23 @@ chpe_bins <- as.polygons(chpe_bins) %>%
   filter(mean == 20) %>%
   project(crs(domain7)) %>%
   intersect(domain7)
-gepe_bins <- as.polygons(gepe_bins) %>%
-  filter(mean == 20) %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
-mape_bins <- as.polygons(mape_bins) %>%
-  filter(mean == 20) %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
 empe_bins <- as.polygons(empe_bins) %>%
   filter(mean == 20) %>%
   project(crs(domain7)) %>%
   intersect(domain7)
-kipe_bins <- as.polygons(kipe_bins) %>%
-  filter(mean == 20) %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
-
-# only macaronis, kings and gentoos
-p1_present <- ggplot() +
-  geom_spatvector(data = mape_bins, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = kipe_bins, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = gepe_bins, fill = "#cd3d4c", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mpas, fill = NA, col = "black") +
-  geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain7, fill = NA, col = "black") +
-  theme_void()
-p1_present
 
 # only adelies, chinstraps, and emperors
 p2_present <- ggplot() + 
-  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mpas, fill = NA, col = "black") +
+  geom_spatvector(data = domain7, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 1) +
+  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.8) +
+  geom_spatvector(data = mpas, fill = NA, col = "grey60", linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain7, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_present
+p2_present + ggview::canvas(width = 12, height = 9)
 
 #-------------------------------------------------------------------------------
 # SSP126
@@ -104,10 +76,7 @@ p2_present
 # read in future suitability bins
 adpe_bins_126 <- rast("output/combined/projections/ssp126/ADPE_mean_future_core_habitat.tif")
 chpe_bins_126 <- rast("output/combined/projections/ssp126/CHPE_mean_future_core_habitat.tif")
-gepe_bins_126 <- rast("output/combined/projections/ssp126/GEPE_mean_future_core_habitat.tif")
-mape_bins_126 <- rast("output/combined/projections/ssp126/MAPE_mean_future_core_habitat.tif")
 empe_bins_126 <- rast("output/combined/projections/ssp126/EMPE_mean_future_core_habitat.tif")
-kipe_bins_126 <- rast("output/combined/projections/ssp126/KIPE_mean_future_core_habitat.tif")
 
 # limit to areas of core habitat
 adpe_bins_126 <- adpe_bins_126 %>% 
@@ -120,52 +89,24 @@ chpe_bins_126 <- chpe_bins_126 %>%
   as.polygons() %>%
   project(crs(domain7)) %>%
   intersect(domain7)
-gepe_bins_126 <- gepe_bins_126 %>%
-  filter(mean == 1) %>%
-  as.polygons() %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
-mape_bins_126 <- mape_bins_126 %>%
-  filter(mean == 1) %>%
-  as.polygons() %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
 empe_bins_126 <- empe_bins_126 %>%
   filter(mean == 1) %>%
   as.polygons() %>%
   project(crs(domain7)) %>%
   intersect(domain7)
-kipe_bins_126 <- kipe_bins_126 %>%
-  filter(mean == 1) %>%
-  as.polygons() %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
-
-# plot kings, gentoos, macaronis
-p1_126 <- ggplot() +
-  geom_spatvector(data = mape_bins_126, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = kipe_bins_126, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = gepe_bins_126, fill = "#cd3d4c", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mpas, fill = NA, col = "black") +
-  geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain7, fill = NA, col = "black") +
-  theme_void()
-p1_126 
 
 # plot adelies, chinstraps, and emperors
-p2_126 <- ggplot() +
-  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins_126, fill = "#00768B", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mpas, fill = NA, col = "black") +
+p2_126 <- ggplot() + 
+  geom_spatvector(data = domain7, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 1) +
+  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins_126, fill = "#00768B", col = NA, alpha = 0.8) +
+  geom_spatvector(data = mpas, fill = NA, col = "grey60", linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain7, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_126
+p2_126 + ggview::canvas(width = 12, height = 9)
 
 #-------------------------------------------------------------------------------
 # SSP585
@@ -174,10 +115,7 @@ p2_126
 # read in future suitability bins
 adpe_bins_585 <- rast("output/combined/projections/ssp585/ADPE_mean_future_core_habitat.tif")
 chpe_bins_585 <- rast("output/combined/projections/ssp585/CHPE_mean_future_core_habitat.tif")
-gepe_bins_585 <- rast("output/combined/projections/ssp585/GEPE_mean_future_core_habitat.tif")
-mape_bins_585 <- rast("output/combined/projections/ssp585/MAPE_mean_future_core_habitat.tif")
 empe_bins_585 <- rast("output/combined/projections/ssp585/EMPE_mean_future_core_habitat.tif")
-kipe_bins_585 <- rast("output/combined/projections/ssp585/KIPE_mean_future_core_habitat.tif")
 
 # limit to areas of core habitat
 adpe_bins_585 <- adpe_bins_585 %>% 
@@ -190,52 +128,24 @@ chpe_bins_585 <- chpe_bins_585 %>%
   as.polygons() %>%
   project(crs(domain7)) %>%
   intersect(domain7)
-gepe_bins_585 <- gepe_bins_585 %>%
-  filter(mean == 1) %>%
-  as.polygons() %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
-mape_bins_585 <- mape_bins_585 %>%
-  filter(mean == 1) %>%
-  as.polygons() %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
 empe_bins_585 <- empe_bins_585 %>%
   filter(mean == 1) %>%
   as.polygons() %>%
   project(crs(domain7)) %>%
   intersect(domain7)
-kipe_bins_585 <- kipe_bins_585 %>%
-  filter(mean == 1) %>%
-  as.polygons() %>%
-  project(crs(domain7)) %>%
-  intersect(domain7)
-
-# plot kings, gentoos, macaronis
-p1_585 <- ggplot() +
-  geom_spatvector(data = mape_bins_585, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = kipe_bins_585, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = gepe_bins_585, fill = "#cd3d4c", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mpas, fill = NA, col = "black") +
-  geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain7, fill = NA, col = "black") +
-  theme_void()
-p1_585 
 
 # plot adelies, chinstraps, and emperors
-p2_585 <- ggplot() +
-  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins_585, fill = "#00768B", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mpas, fill = NA, col = "black") +
+p2_585 <- ggplot() + 
+  geom_spatvector(data = domain7, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 1) +
+  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins_585, fill = "#00768B", col = NA, alpha = 1) +
+  geom_spatvector(data = mpas, fill = NA, col = "grey60", linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  #geom_spatvector(data = domain7, fill = NA, col = "black") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_585
+p2_585 + ggview::canvas(12, 9)
 
 
 # plot all together
@@ -249,10 +159,11 @@ ggsave("text/figures/draft/domainplots/domain7/corehabitat.png", p2,
 # bonus plots
 # just plot proposed MPAs, existing MPAs, and the coast
 proposal <- ggplot() +
-  geom_spatvector(data = mpas, fill = "#AA9ABA", col = NA) +
+  geom_spatvector(data = domain7, col = "darkred", fill = NA, linewidth = .5) +
+  geom_spatvector(data = mpas, fill = "#DF7CA8", col = NA) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
 proposal + ggview::canvas(width = 10, height = 10)
 ggsave("text/figures/draft/domainplots/domain7/proposal.png",

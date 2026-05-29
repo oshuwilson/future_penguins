@@ -119,97 +119,36 @@ for(species in species_options){
 # saveRDS(trax_lines, "data/track_lines.RDS")
 
 #-------------------------------------------------------------------------------
-# Plot maps for two species at a time
+# Plot map for all species
 #-------------------------------------------------------------------------------
 
 # read in track lines
 combined_trax <- readRDS("data/track_lines.RDS")
 
-# read in depth basemap
-depth <- rast("data/depth_stereographic.tif")
+# read in front positions
+fronts <- sf::read_sf("data/fronts/antarctic_circumpolar_current_fronts.shp") %>%
+  vect()
+fronts <- fronts %>%
+  filter(NAME %in% c("Polar Front (PF)", "Subantarctic Front (SAF)",
+                     "Southern Antarctic Circumpolar Current Front (sACCf)"))
+
+# create bounding box of fronts
+fronts_bbox <- as.polygons(ext(-180, 180, -80, -40)) %>%
+  buffer(0)
+
+# crop and project fronts
+fronts <- crop(fronts, ext(fronts_bbox))
+fronts <- fronts %>%
+  project("epsg:6932")
+fronts <- fronts[-c(3:4)]
 
 # read in coastline
 coast <- readRDS("data/coast_ice_vect.RDS")
 
-# 1. Macaronis and Chinstraps
-
-# limit to these species
-chpe_trax <- combined_trax %>%
-  filter(species == "CHPE")
-mape_trax <- combined_trax %>%
-  filter(species == "MAPE")
-chpe_colonies <- combined_colonies %>%
-  filter(species == "CHPE")
-mape_colonies <- combined_colonies %>%
-  filter(species == "MAPE")
-
-# plot together
-ggplot() +
-  geom_spatraster(data = depth) +
-  geom_spatvector(data = coast, fill = "white", col = NA) +
-  scale_fill_gradient(na.value = "transparent", guide = "none", 
-                      high = "lightgrey", low = "lightgrey") +
-  geom_spatvector(data = mape_trax, col = "#EAC10B", lwd = 0.5) +
-  geom_spatvector(data = chpe_trax, col = "#00768B", lwd = 0.5) +
-  theme_void() +
-  ggview::canvas(width = 8, height = 8)
-
-
-# 2. Gentoos and Adelies
-
-# limit to these species
-gepe_trax <- combined_trax %>%
-  filter(species == "GEPE")
-adpe_trax <- combined_trax %>%
-  filter(species == "ADPE")
-gepe_colonies <- combined_colonies %>%
-  filter(species == "GEPE")
-adpe_colonies <- combined_colonies %>%
-  filter(species == "ADPE")
-
-# plot together
-ggplot() +
-  geom_spatraster(data = depth) +
-  geom_spatvector(data = coast, fill = "white", col = NA) +
-  scale_fill_gradient(na.value = "transparent", guide = "none", 
-                      high = "lightgrey", low = "lightgrey") +
-  geom_spatvector(data = adpe_trax, col = "#000004", lwd = 0.5) +
-  geom_spatvector(data = gepe_trax, col = "#C9404A", lwd = 0.5) +
-  theme_void() +
-  ggview::canvas(width = 8, height = 8)
-
-
-# 3. Emperors and Kings
-
-# limit to these species
-empe_trax <- combined_trax %>%
-  filter(species == "EMPE")
-kipe_trax <- combined_trax %>%
-  filter(species == "KIPE")
-empe_colonies <- combined_colonies %>%
-  filter(species == "EMPE")
-kipe_colonies <- combined_colonies %>%
-  filter(species == "KIPE")
-
-# plot together
-ggplot() +
-  geom_spatraster(data = depth) +
-  geom_spatvector(data = coast, fill = "white", col = NA) +
-  scale_fill_gradient(na.value = "transparent", guide = "none", 
-                      high = "lightgrey", low = "lightgrey") +
-  geom_spatvector(data = kipe_trax, col = "#F67F13", lwd = 0.5) +
-  geom_spatvector(data = empe_trax, col = "#84206B", lwd = 0.5) +
-  theme_void() +
-  ggview::canvas(width = 8, height = 8)
-
-
-# 4. All species on one map?
-
 # plot tracks
 p1 <- ggplot() +
-  # geom_spatraster(data = depth) +
-  # scale_fill_gradient(na.value = "transparent", guide = "none", 
-  #                     high = "white", low = "white") +
+  geom_spatvector(data = fronts, col = "grey70", aes(linetype = NAME), linewidth = 0.6,
+                  alpha = 0.6) +
   geom_spatvector(data = combined_trax %>% filter(species == "KIPE"), col = "#F67F13", lwd = 0.5, alpha = 1) +
   geom_spatvector(data = combined_trax %>% filter(species == "MAPE"), col = "#EAC10B", lwd = 0.5, alpha = 1) +
   geom_spatvector(data = combined_trax %>% filter(species == "ADPE"), col = "#000004", lwd = 0.5, alpha = 1) +
@@ -218,10 +157,11 @@ p1 <- ggplot() +
   geom_spatvector(data = combined_trax %>% filter(species == "GEPE"), col = "#C9404A", lwd = 0.5, alpha = 1) +
   theme_void() +
   geom_spatvector(data = coast, aes(fill = surface), col = NA) +
-  scale_fill_manual(values = c("grey90", "grey50"), guide = "none") 
+  scale_fill_manual(values = c("grey90", "grey50"), guide = "none") +
+  scale_linetype(guide = "none")
 p1 + ggview::canvas(width = 8, height = 8)
 
 # export
-ggsave("text/figuresdraft/track_map/ggplot_export.png", p1,
+ggsave("text/figures/draft/track_map/ggplot_export.png", p1,
        width = 8, height = 8, units = "in", dpi = 300)
 

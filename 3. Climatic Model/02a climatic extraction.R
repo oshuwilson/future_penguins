@@ -30,12 +30,6 @@ cols <- cols %>%
   vect(geom = c("x", "y"), crs = "epsg:4326") %>%
   project("epsg:6932")
 
-# apply a 100km buffer around the colonies
-buff <- buffer(cols, 100000)
-
-# erase background locations within buffer
-bg <- erase(bg, buff)
-
 # plot together
 ggplot() +
   geom_spatvector(data = bg, aes(col = subarea)) +

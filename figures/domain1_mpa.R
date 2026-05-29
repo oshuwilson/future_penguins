@@ -88,33 +88,35 @@ kipe_bins <- as.polygons(kipe_bins) %>%
   project(crs(domain1)) %>%
   intersect(domain1)
 
-# only macaronis, kings and gentoos
+# plot kings, gentoos, macaronis
 p1_present <- ggplot() +
-  geom_spatvector(data = mape_bins, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = kipe_bins, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = gepe_bins, fill = "#cd3d4c", col = NA, alpha = 0.5) +
-  geom_spatvector(data = wap, fill = NA, col = "black") + 
-  geom_spatvector(data = imp_domain1, col = "black", fill = NA) +
-  geom_spatvector(data = vbz, col = "black", fill = NA) +
+  geom_spatvector(data = domain1, col = "grey40", fill = NA, linewidth = .5) +
+  geom_spatvector(data = mape_bins, fill = "#f5d63d", col = NA, alpha = 0.8) +
+  geom_spatvector(data = kipe_bins, fill = "#f57f13", col = NA, alpha = 0.8) +
+  geom_spatvector(data = gepe_bins, fill = "#cd3d4c", col = NA, alpha = 0.8) +
+  geom_spatvector(data = wap, fill = NA, col = "grey60", linewidth = .5) + 
+  geom_spatvector(data = imp_domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = vbz, col = "grey60", fill = NA, linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p1_present
+p1_present + ggview::canvas(8, 10)
 
-# only adelies, chinstraps, and emperors
-p2_present <- ggplot() + 
-  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = wap, fill = NA, col = "black") + 
-  geom_spatvector(data = vbz, fill = NA, col = "black") +
-  geom_spatvector(data = imp_domain1, col = "black", fill = NA) +
+# plot adelies, chinstraps, and emperors
+p2_present <- ggplot() +
+  geom_spatvector(data = domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.8) +
+  geom_spatvector(data = empe_bins, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = wap, fill = NA, col = "grey60", linewidth = .5) + 
+  geom_spatvector(data = imp_domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = vbz, col = "grey60", fill = NA, linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_present
+p2_present + ggview::canvas(8, 10)
 
 
 #-------------------------------------------------------------------------------
@@ -163,31 +165,33 @@ kipe_bins_126 <- kipe_bins_126 %>%
 
 # plot kings, gentoos, macaronis
 p1_126 <- ggplot() +
-  geom_spatvector(data = mape_bins_126, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = kipe_bins_126, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = gepe_bins_126, fill = "#cd3d4c", col = NA, alpha = 0.5) +
-  geom_spatvector(data = wap, fill = NA, col = "black") + 
-  geom_spatvector(data = imp_domain1, col = "black", fill = NA) +
-  geom_spatvector(data = vbz, col = "black", fill = NA) +
+  geom_spatvector(data = domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = mape_bins_126, fill = "#f5d63d", col = NA, alpha = 0.8) +
+  geom_spatvector(data = kipe_bins_126, fill = "#f57f13", col = NA, alpha = 0.8) +
+  geom_spatvector(data = gepe_bins_126, fill = "#cd3d4c", col = NA, alpha = 0.8) +
+  geom_spatvector(data = wap, fill = NA, col = "grey60", linewidth = .5) + 
+  geom_spatvector(data = imp_domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = vbz, col = "grey60", fill = NA, linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p1_126 
+p1_126 + ggview::canvas(8, 10)
 
 # plot adelies, chinstraps, and emperors
 p2_126 <- ggplot() +
-  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins_126, fill = "#00768B", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = wap, fill = NA, col = "black") + 
-  geom_spatvector(data = imp_domain1, col = "black", fill = NA) +
-  geom_spatvector(data = vbz, col = "black", fill = NA) +
+  geom_spatvector(data = domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins_126, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins_126, fill = "#00768B", col = NA, alpha = 0.8) +
+  geom_spatvector(data = empe_bins_126, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = wap, fill = NA, col = "grey60", linewidth = .5) + 
+  geom_spatvector(data = imp_domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = vbz, col = "grey60", fill = NA, linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_126
+p2_126 + ggview::canvas(8, 10)
 
 #-------------------------------------------------------------------------------
 # SSP585
@@ -235,64 +239,60 @@ kipe_bins_585 <- kipe_bins_585 %>%
 
 # plot kings, gentoos, macaronis
 p1_585 <- ggplot() +
-  geom_spatvector(data = mape_bins_585, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = kipe_bins_585, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = gepe_bins_585, fill = "#cd3d4c", col = NA, alpha = 0.5) +
-  geom_spatvector(data = wap, fill = NA, col = "black") + 
-  geom_spatvector(data = imp_domain1, col = "black", fill = NA) +
-  geom_spatvector(data = vbz, col = "black", fill = NA) +
+  geom_spatvector(data = domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = mape_bins_585, fill = "#f5d63d", col = NA, alpha = 0.8) +
+  geom_spatvector(data = kipe_bins_585, fill = "#f57f13", col = NA, alpha = 0.8) +
+  geom_spatvector(data = gepe_bins_585, fill = "#cd3d4c", col = NA, alpha = 0.8) +
+  geom_spatvector(data = wap, fill = NA, col = "grey60", linewidth = .5) + 
+  geom_spatvector(data = imp_domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = vbz, col = "grey60", fill = NA, linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p1_585 
+p1_585 + ggview::canvas(8, 10)
 
 # plot adelies, chinstraps, and emperors
 p2_585 <- ggplot() +
-  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins_585, fill = "#00768B", col = NA, alpha = 0.5) +
-  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.5) +
-  geom_spatvector(data = wap, fill = NA, col = "black") + 
-  geom_spatvector(data = imp_domain1, col = "black", fill = NA) +
-  geom_spatvector(data = vbz, col = "black", fill = NA) +
+  geom_spatvector(data = domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = adpe_bins_585, fill = "#000004", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins_585, fill = "#00768B", col = NA, alpha = 0.8) +
+  geom_spatvector(data = empe_bins_585, fill = "#822069", col = NA, alpha = 0.8) +
+  geom_spatvector(data = wap, fill = NA, col = "grey60", linewidth = .5) + 
+  geom_spatvector(data = imp_domain1, col = "grey60", fill = NA, linewidth = .5) +
+  geom_spatvector(data = vbz, col = "grey60", fill = NA, linewidth = .5) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
-p2_585
+p2_585 + ggview::canvas(8, 10)
 
 
 # plot all together
 library(cowplot)
-p1 <- plot_grid(p1_present, p1_126, p1_585, ncol = 1)
-p2 <- plot_grid(p2_present, p2_126, p2_585, ncol = 1)
-all_grid <- plot_grid(p1, p2, ncol = 2)
-all_grid
 all_grid2 <- plot_grid(p1_present, p2_present, p1_126, p2_126, p1_585, p2_585,
                        ncol = 3, byrow = F)
-
-all_grid2 + ggview::canvas(width = 12, height = 12)
+all_grid2 + ggview::canvas(width = 15, height = 15)
 ggsave("text/figures/draft/domainplots/domain1/corehabitat.png", all_grid2,
-       width = 12, height = 12)
-
+       width = 15, height = 15)
 
 # bonus plots
 # just plot proposed MPAs, existing MPAs, and the coast
 proposal <- ggplot() +
-  geom_spatvector(data = gpz, fill = "#AA9ABA", col = NA, alpha = 1) +
+  geom_spatvector(data = domain1, col = "darkred", fill = NA) +
+  geom_spatvector(data = gpz, fill = "#DF7CA8", col = NA, alpha = 1) +
   geom_spatvector(data = spz, fill = "#baaa9a", col = NA, alpha = 1) +
   geom_spatvector(data = vbz, fill = "#BAF2BB", col = NA, alpha = 0.8) +
-  geom_spatvector(data = imp_domain1, col = NA, fill = "#007a8a", alpha = 0.8) +
+  geom_spatvector(data = imp_domain1, col = NA, fill = "#26547C", alpha = 0.8) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
   theme_void()
 proposal + ggview::canvas(width = 7, height = 10)
 ggsave("text/figures/draft/domainplots/domain1/proposal.png",
        width = 7, height = 10) 
 
 # plot of all domains
-domains <- domains %>% project("epsg:6932")
 domainplot <- ggplot() +
   geom_spatvector(data = domains, fill = "grey", col = NA) +
   geom_spatvector(data = domains %>% filter(Name == "1"), fill = "darkred", col = NA) +

@@ -238,16 +238,15 @@ for(scenario in c("ssp126")){
     geom_spatraster(data = mean_hs_av %>% project("epsg:6932")) +
     geom_spatvector(data = coast, col = NA, fill = "white") +
     geom_spatvector(data = bins_vect, fill = NA, col = "white") +
-    scale_fill_viridis_c(na.value = "white", option = "D", name = "Habitat Suitability") +
+    scale_fill_viridis_c(na.value = "white", option = "D", guide = "none") +
     theme_void() +
-    ggtitle(paste0(longname)) +
     theme(plot.title = element_text(hjust = 0.5))
-  #p1
+  p1 + ggview::canvas(8, 8)
   
   # export
   ggsave(paste0("output/imagery/combined suitability/", species, "_", scenario, "_suitability.png"),
          plot = p1,
-         width = 8, height = 6, units = "in", dpi = 300)
+         width = 8, height = 8, units = "in", dpi = 300)
   
   # read in current suitability
   present <- rast(paste0("output/combined/predictions/", species, "_mean_combined_suitability.tif"))
@@ -268,16 +267,14 @@ for(scenario in c("ssp126")){
     geom_spatraster(data = diff %>% project("epsg:6932")) +
     geom_spatvector(data = coast, col = NA, fill = "white") +
     scale_fill_gradient2(na.value = "white", low = "darkred", mid = "grey90", high = "steelblue4", 
-                         name = "Change in\nHabitat Suitability", limits = c(-max_val, max_val)) +
-    theme_void() +
-    ggtitle(paste0(longname, " - Change in Habitat Suitability")) +
-    theme(plot.title = element_text(hjust = 0.5))
-  #p2 + ggview::canvas(width = 8, height = 6)
+                         guide = "none", limits = c(-max_val, max_val)) +
+    theme_void() 
+  p2 + ggview::canvas(width = 8, height = 8)
   
   # export
   ggsave(paste0("output/imagery/combined suitability/", species, "_", scenario, "_suitability_difference.png"),
          plot = p2,
-         width = 8, height = 6, units = "in", dpi = 300)
+         width = 8, height = 8, units = "in", dpi = 300)
   
   
   #-------------------------------------------------------------------------------
@@ -1008,5 +1005,3 @@ future_summ <- future_summ %>%
 
 # export
 saveRDS(future_summ, paste0("output/combined/figdata/subarea_prop_change/", scenario, "_", species, "_prop_change_by_subarea.rds"))
-
-

@@ -68,12 +68,13 @@ kipe_bins <- as.polygons(kipe_bins) %>%
 
 # only kings gentoos, and macaronis
 p1_present <- ggplot() +
-  geom_spatvector(data = kipe_bins, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mape_bins, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.5) +
+  geom_spatvector(data = this_domain, col = "grey40", fill = NA, linewidth = .5) +
+  geom_spatvector(data = kipe_bins, fill = "#f57f13", col = NA, alpha = 0.8) +
+  geom_spatvector(data = mape_bins, fill = "#f5d63d", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.8) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   geom_spatvector(data = this_domain, fill = NA, col = NA) +
   theme_void()
 p1_present
@@ -123,18 +124,18 @@ kipe_bins_126 <- kipe_bins_126 %>%
   project(crs(this_domain)) %>%
   intersect(this_domain)
 
-# plot kings, macaronis and gentoos
+# ssp126 plot
 p1_126 <- ggplot() +
-  geom_spatvector(data = kipe_bins_126, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mape_bins_126, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.5) +
-  #geom_spatvector(data = gepe_bins_126, fill = "#cd3d4c", col = NA, alpha = 0.5) +
+  geom_spatvector(data = this_domain, col = "grey40", fill = NA, linewidth = .5) +
+  geom_spatvector(data = kipe_bins_126, fill = "#f57f13", col = NA, alpha = 0.8) +
+  geom_spatvector(data = mape_bins_126, fill = "#f5d63d", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins_126, fill = "#00768B", col = NA, alpha = 0.8) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   geom_spatvector(data = this_domain, fill = NA, col = NA) +
   theme_void()
-p1_126 
+p1_126
 
 
 #-------------------------------------------------------------------------------
@@ -181,18 +182,18 @@ kipe_bins_585 <- kipe_bins_585 %>%
   project(crs(this_domain)) %>%
   intersect(this_domain)
 
-# plot kings macaronis and chinstraps
+# ssp585 plot
 p1_585 <- ggplot() +
-  geom_spatvector(data = kipe_bins_585, fill = "#f57f13", col = NA, alpha = 0.5) +
-  geom_spatvector(data = mape_bins_585, fill = "#f5d63d", col = NA, alpha = 0.5) +
-  #geom_spatvector(data = gepe_bins_585, fill = "#cd3d4c", col = NA, alpha = 0.5) +
-  geom_spatvector(data = chpe_bins, fill = "#00768B", col = NA, alpha = 0.5) +
+  geom_spatvector(data = this_domain, col = "grey40", fill = NA, linewidth = .5) +
+  geom_spatvector(data = mape_bins_585, fill = "#f5d63d", col = NA, alpha = 0.8) +
+  geom_spatvector(data = kipe_bins_585, fill = "#f57f13", col = NA, alpha = 0.8) +
+  geom_spatvector(data = chpe_bins_585, fill = "#00768B", col = NA, alpha = 0.8) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
+  scale_fill_manual(values = c("grey90", "grey40"), guide = "none") +
+  scale_color_manual(values = c("grey90", "grey40"), guide = "none") +
   geom_spatvector(data = this_domain, fill = NA, col = NA) +
   theme_void()
-p1_585 
+p1_585
 
 # plot all together
 library(cowplot)
@@ -206,10 +207,10 @@ ggsave("text/figures/draft/domainplots/domain_bouvet/corehabitat.png", all_grid,
 # bonus plots
 # just plot proposed MPAs, existing MPAs, and the coast
 proposal <- ggplot() +
+  geom_spatvector(data = this_domain, col = "darkred", fill = NA) +
   geom_spatvector(data = coast, aes(fill = surface, col = surface)) +
-  scale_color_manual(values = c("grey80", "grey20"), guide = "none") +
-  scale_fill_manual(values = c("grey80", "grey20"), guide = "none") +
-  geom_spatvector(data = this_domain, fill = NA, col = NA) +
+  scale_color_manual(values = c("grey40", "grey40"), guide = "none") +
+  scale_fill_manual(values = c("grey40", "grey40"), guide = "none") +
   theme_void()
 proposal + ggview::canvas(width = 10, height = 7)
 ggsave("text/figures/draft/domainplots/domain_bouvet/proposal.png",
