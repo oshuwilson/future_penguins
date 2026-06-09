@@ -41,3 +41,16 @@ Scripts used to create the main figures presented in the manuscript.
 ## **Supplementary Figures**
 
 Scripts used to create supplementary figures accompanying the manuscript.
+
+## **Demo Data**
+
+A subset of the tracking data (KIPE_chick-rearing_data) and colony data (KIPE env thinned) with associated background samples, which has already been pre-processed and thinned in geographic and environmental space. These datasets can be used to run through the modelling scripts.
+
+
+---
+
+# **Required Software**
+
+- R v4.5.1
+- Bash v5.2.15
+
