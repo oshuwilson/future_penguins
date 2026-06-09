@@ -44,7 +44,7 @@ Scripts used to create supplementary figures accompanying the manuscript.
 
 ## **Demo Data**
 
-A subset of the tracking data (KIPE_chick-rearing_data) and colony data (KIPE env thinned) with associated background samples, which has already been pre-processed and thinned in geographic and environmental space. These datasets can be used to run through the modelling scripts.
+A subset of the tracking data (KIPE_chick-rearing_data) and colony data (KIPE env thinned) with associated background samples, which has already been pre-processed and thinned in geographic and environmental space. These datasets can be used to run through the modelling scripts. These are not representative of the raw data and should not be used in any work without the author's consent.
 
 
 ---
