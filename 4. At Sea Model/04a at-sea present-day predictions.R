@@ -65,6 +65,7 @@ for(var in static_vars){
   if(var == static_vars[1]) {
     static_stack <- var_rast
   } else {
+    var_rast <- resample(var_rast, static_stack[[1]], method = "bilinear")
     static_stack <- c(static_stack, var_rast)
   }
 }
@@ -105,7 +106,7 @@ for(var in dynamic_vars){
 
 
 # create subarea raster to enable predictions
-subarea_rast <- rast(ext = ext(static_stack), crs = "epsg:4326", res = res(static_stack))
+subarea_rast <- rast(ext = ext(dynamic_stack), crs = "epsg:4326", res = res(dynamic_stack))
 values(subarea_rast) <- "test"
 names(subarea_rast) <- "subarea"
 

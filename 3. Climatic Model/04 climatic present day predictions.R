@@ -153,48 +153,6 @@ rm(brt, predictors, temp, prec, now, stack, pred_raster, polar_pred)
 
 
 #------------------------------------------------------------
-# MaxEnt
-#------------------------------------------------------------
-
-# load in maxent model
-maxent <- readRDS(paste0("output/climatic model/maxent/", species, "_maxent_model.rds"))
-
-# get predictor names for this model
-predictors <- maxent$pre$actions$recipe$recipe$var_info$variable
-predictors <- predictors[predictors != "pa"]
-
-# choose these predictors
-temp <- get(predictors[1])
-prec <- get(predictors[2])
-now <- get(predictors[3])
-
-# stack predictors
-stack <- c(temp, prec, now)
-
-# rename to names of predictors
-names(stack) <- predictors
-
-# predict raster
-pred_raster <- predict_raster(maxent, stack, type = "prob")
-
-# limit to presences only
-pred_raster <- pred_raster[[names(pred_raster) == ".pred_presence"]]
-plot(pred_raster)
-
-# plot in polar view
-polar_pred <- project(pred_raster, "epsg:6932")
-plot(polar_pred)
-
-# export the maxent prediction
-writeRaster(pred_raster, 
-            filename = paste0("output/climatic model/predictions/", species, "_maxent_prediction.tif"),
-            overwrite = TRUE)
-
-# cleanup
-rm(maxent, predictors, temp, prec, now, stack, pred_raster, polar_pred)
-
-
-#------------------------------------------------------------
 # Generalised Additive Models
 #------------------------------------------------------------
 
@@ -345,29 +303,16 @@ rm(bart, predictors, temp, prec, now, stack, pred_raster, polar_pred)
 # read in all predicted rasters
 rf <- rast(paste0("output/climatic model/predictions/", species, "_rf_prediction.tif"))
 brt <- rast(paste0("output/climatic model/predictions/", species, "_brt_prediction.tif"))
-maxent <- rast(paste0("output/climatic model/predictions/", species, "_maxent_prediction.tif"))
 gam <- rast(paste0("output/climatic model/predictions/", species, "_gam_prediction.tif"))
 bart <- rast(paste0("output/climatic model/predictions/", species, "_bart_prediction.tif"))
 
-# stack predictions
-pred_stack <- c(rf, brt, gam, bart)
-
-# simple ensemble
-simple <- app(pred_stack, mean, na.rm = TRUE)
-plot(simple)
-
-# read in cbi scores for weighted ensemble
+# read in cbi scores for exclusion
 rf_cbi <- readRDS(paste0("output/climatic model/random forests/", species, "_cbi_scores.rds")) %>%
   arrange(desc(mean)) %>%
   slice(1) %>%
   pull(mean)
 
 brt_cbi <- readRDS(paste0("output/climatic model/boosted regression trees/", species, "_cbi_scores.rds")) %>%
-  arrange(desc(mean)) %>%
-  slice(1) %>%
-  pull(mean)
-
-maxent_cbi <- readRDS(paste0("output/climatic model/maxent/", species, "_cbi_scores.rds")) %>%
   arrange(desc(mean)) %>%
   slice(1) %>%
   pull(mean)
@@ -382,30 +327,21 @@ bart_cbi <- readRDS(paste0("output/climatic model/bayesian additive regression t
   slice(1) %>%
   pull(mean)
 
-# multiply predictions by relevant cbi scores
-rf <- rf * rf_cbi
-brt <- brt * brt_cbi
-maxent <- maxent * maxent_cbi
-gam <- gam * gam_cbi
-bart <- bart * bart_cbi
+# create stack of accurate predictions 
+pred_list <- list()
 
-# stack predictions
-pred_stack2 <- c(rf, brt, maxent, gam, bart)
+if (rf_cbi >= 0.4)   pred_list <- c(pred_list, list(rf))
+if (brt_cbi >= 0.4)  pred_list <- c(pred_list, list(brt))
+if (gam_cbi >= 0.4)  pred_list <- c(pred_list, list(gam))
+if (bart_cbi >= 0.4) pred_list <- c(pred_list, list(bart))
 
-# weighted ensemble
-weighted <- app(pred_stack2, mean, na.rm = TRUE)
-plot(weighted)
+pred_stack <- do.call(c, pred_list)
 
-# plot ensembles in polar view
-polar_simple <- project(simple, "epsg:6932")
-plot(polar_simple)
-polar_weighted <- project(weighted, "epsg:6932")
-plot(polar_weighted)
+# simple ensemble
+simple <- app(pred_stack, mean, na.rm = TRUE)
+
 
 # export the ensemble predictions
 writeRaster(simple, 
             filename = paste0("output/climatic model/predictions/", species, "_simple_ensemble.tif"),
-            overwrite = TRUE)
-writeRaster(weighted, 
-            filename = paste0("output/climatic model/predictions/", species, "_weighted_ensemble.tif"),
             overwrite = TRUE)

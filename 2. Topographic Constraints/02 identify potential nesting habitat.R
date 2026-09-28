@@ -13,7 +13,7 @@ library(tidyterra)
 select <- dplyr::select
 
 # define species for this run
-species <- "KIPE"
+species <- "CHPE"
 
 # candidate variables
 preds <- c("elevation", "dist2coast", "rock")
@@ -35,7 +35,9 @@ ggplot(colonies, aes(x = elevation)) +
 
 # define max thresholds based on 95th percentile
 max_dist2coast <- quantile(colonies$dist2coast, 0.95, na.rm = TRUE)
+max(colonies$dist2coast)
 max_elevation <- quantile(colonies$elevation, 0.95, na.rm = TRUE)
+max_elevation
 
 # create threshold df 
 thresholds <- data.frame(species = species,

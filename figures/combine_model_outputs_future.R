@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Bring Together Present-Day Predictions
+# Bring Together Future Predictions
 #-------------------------------------------------------------------------------
 
 rm(list=ls())
@@ -11,12 +11,12 @@ library(terra)
 library(scam)
 
 # loop over scenarios
-for(scenario in c("ssp126")){
+for(scenario in c("ssp126", "ssp585")){
   print(scenario)
   
   # define species
-  species <- "GEPE"
-  longname <- "Gentoo Penguin"
+  species <- "CHPE"
+  longname <- "Chinstrap Penguin"
   
   # list of all GCMs
   gcms <- c("ACCESS-ESM1-5", "CanESM5", "CESM2-WACCM", "HadGEM3-GC31-LL", 
@@ -302,6 +302,10 @@ for(scenario in c("ssp126")){
     }
   }
   
+  # project bins
+  bins <- project(bins, crs(gcm_bins_stack), method = "near")
+  bins <- resample(bins, gcm_bins_stack, method = "near")
+  
   # export gcm_bins_stack
   writeRaster(gcm_bins_stack, paste0("output/combined/projections/", scenario, "/", species, "_gcm_core_habitat_bins.tif"),
               overwrite = TRUE)
@@ -502,9 +506,9 @@ for(scenario in c("ssp126")){
 }
 
 #-------------------------------------------------------------------------------
-# Alternative version for emperors using dist2coast and climatic suitability 
+# Alternative version for emperors using dist2coast and climatic suitability
 #-------------------------------------------------------------------------------
-# emperors do not breed on land but on sea ice so cannot use same approach for 
+# emperors do not breed on land but on sea ice so cannot use same approach for
 # constraining the at-sea predictions
 
 rm(list=ls())
@@ -520,69 +524,69 @@ species <- "EMPE"
 longname <- "Emperor Penguin"
 
 # define scenario
-scenario <- "ssp585"
+scenario <- "ssp126"
 
 # list of all GCMs
-gcms <- c("ACCESS-ESM1-5", "CanESM5", "CESM2-WACCM", "HadGEM3-GC31-LL", 
+gcms <- c("ACCESS-ESM1-5", "CanESM5", "CESM2-WACCM", "HadGEM3-GC31-LL",
           "IPSL-CM6A-LR", "MRI-ESM2-0", "NorESM2-MM", "UKESM1-0-LL")
 
 # loop over each gcm
 for(gcm in gcms){
   print(gcm)
-  
+
   #-------------------------------------------------------------------------------
   # 1. Create accessible habitat from climatic core habitat
   #-------------------------------------------------------------------------------
-  
+
   # read in climatic prediction
   climatic_prediction <- rast(paste0("output/climatic model/projections/", scenario, "/", gcm, "/", species, "_", gcm, "_", scenario, "_simple_ensemble.tif"))
-  
+
   # read in threshold for suitable climatic conditions
   threshold <- readRDS(paste0("output/climatic model/thresholds/", species, "_tss_max_threshold.RDS"))
-  
+
   # binarize climatic prediction
   climatic_core_habitat <- climatic_prediction >= threshold
-  
+
   # convert to polygons
   climatic_core_habitat <- climatic_core_habitat %>%
     as.polygons() %>%
     filter(mean == 1)
-  
+
   # read in colony locations and background samples
   colonies <- readRDS(paste0("output/climatic model/extraction/", species, " extracted.rds"))
-  
+
   # get max dist2coast of any colonies
   colony_dist2coast <- colonies %>%
     filter(pa == "presence") %>%
     pull(dist2coast) %>%
     max()
-  
+
   # read in dist2coast file
   dist2coast <- rast("E:/Satellite_Data/static/dist2coast_emp.tif")
-  
+
   # make values beyond max dist2coast NA
   dist2coast_masked <- dist2coast
   dist2coast_masked[dist2coast_masked > colony_dist2coast] <- NA
   plot(dist2coast_masked)
-  
+
   # convert to polygons
   dist2coast_habitat <- dist2coast_masked %>%
-    as.polygons() 
-  
+    as.polygons()
+
   # overlap of climatic suitable habitat and dist2coast habitat
   future_habitat <- climatic_core_habitat %>%
     project(crs(dist2coast_habitat)) %>%
     terra::intersect(dist2coast_habitat)
   plot(future_habitat)
-  
+
   # cleanup
   rm(list = setdiff(ls(), c("species", "scenario", "gcm", "gcms", "longname", "future_habitat")))
-  
-  
+
+
   #-------------------------------------------------------------------------------
   # 2. Integrate Foraging Habitat
   #-------------------------------------------------------------------------------
-  
+
   # define possible stages
   if(species == "MAPE"){
     stage_options <- c("chick-rearing", "incubation", "pre-moult")
@@ -591,92 +595,92 @@ for(gcm in gcms){
   } else {
     stage_options <- c("chick-rearing", "incubation")
   }
-  
+
   # for each stage, read in at-sea suitability
   for(this_stage in stage_options){
-    
+
     # read in predicted ensemble suitability
     hs <- rast(paste0("output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", this_stage, "_", gcm, "_", scenario, "_simple_ensemble.tif"))
     #plot(hs)
-    
+
     # project future habitat to at-sea model crs
     future_habitat <- future_habitat %>%
       project(crs(hs))
-    
+
     # rasterize future habitat
     hab_rast <- rasterize(future_habitat, hs, touches = T)
     hab_rast[is.na(hab_rast)] <- 0
     hab_rast[hab_rast > 0] <- 100
-    
+
     # read in land file
     land <- rnaturalearth::ne_countries(scale = 10, returnclass = "sv")
-    
+
     # crop land to below 40 degrees south
     land <- crop(land, ext(-180, 180, -90, -40))
-    
+
     # project land to depth raster CRS
     land <- project(land, "epsg:4326")
-    
+
     # rasterise land
     land_rast <- rasterize(land, hs, touches = T)
     land_rast[is.na(land_rast)] <- 0
-    
+
     # add habitat and land rasters
     grd <- hab_rast + land_rast
-    
+
     # convert land values to NA
     grd[grd == 1] <- NA
-    
+
     # revalue habitat locations
     grd[grd == 100] <- 101
-    
+
     # calculate distance to colonies
     dist_rast <- gridDist(grd, target = 101, scale = 1000)
-    
+
     # read in scam model for availability
     scam <- readRDS(paste0("output/at-sea model/availability/", species, "_", this_stage, "_scam_model.RDS"))
-    
+
     # create dataframe for prediction
     testdata <- as.points(dist_rast) %>%
       as.data.frame(geom = "XY")
-    
+
     # rename dist2col column
     names(testdata)[1] <- "dist2col"
-    
+
     # predict using fitted model
     pred <- predict.scam(scam, testdata, type = "response")
     pred <- as.vector(pred)
-    
+
     # add to database
     testdata$pscam <- pred
-    
+
     # convert prediction to points
     predscam <- testdata %>%
       vect(geom = c("x", "y"), crs = crs(dist_rast))
-    
+
     # rasterise prediction
     predrast <- rasterize(predscam, dist_rast, field = "pscam")
-    
+
     # multiply predicted suitability by availability
     hs_av <- hs * predrast
-    
+
     # export suitability raster
     writeRaster(hs_av, paste0("output/combined/projections/", scenario, "/", gcm, "/", species, "_", this_stage, "_combined_suitability.tif"),
                 overwrite = TRUE)
-    
+
     # # view around the South Atlantic
     # plot(hs_av %>% crop(ext(-90, -30, -70, -50)))
-    # 
+    #
     # # view around the South Indian Ocean
     # plot(hs_av %>% crop(ext(20, 100, -60, -40)))
-    # 
+    #
     # # view around Macquarie
     # plot(hs_av %>% crop(ext(150, 170, -60, -50)))
-    # 
-    # # project 
+    #
+    # # project
     # # hs_av_proj <- project(hs_av, "epsg:6932")
     # # plot(hs_av_proj)
-    # 
+    #
     # stack with other stages
     if(this_stage == stage_options[1]){
       combined_stack <- hs_av
@@ -684,11 +688,11 @@ for(gcm in gcms){
       combined_stack <- c(combined_stack, hs_av)
     }
   }
-  
+
   # average stages
   mean_hs_av <- app(combined_stack, fun = mean, na.rm = TRUE)
   plot(mean_hs_av)
-  
+
   # export
   writeRaster(mean_hs_av, paste0("output/combined/projections/", scenario, "/", gcm, "/", species, "_mean_combined_suitability.tif"),
               overwrite = TRUE)
@@ -703,10 +707,10 @@ rm(list=setdiff(ls(), c("species", "scenario", "longname", "gcms")))
 
 # loop over each gcm and read in mean suitability
 for(gcm in gcms){
-  
+
   # read in mean suitability
   mean_hs_av <- rast(paste0("output/combined/projections/", scenario, "/", gcm, "/", species, "_mean_combined_suitability.tif"))
-  
+
   # stack with others
   if(gcm == gcms[1]){
     combined_stack <- mean_hs_av
@@ -771,7 +775,7 @@ max_val <- abs(c(minmax(diff)[1,1], minmax(diff)[2, 1])) %>%
 p2 <- ggplot() +
   geom_spatraster(data = diff %>% project("epsg:6932")) +
   geom_spatvector(data = coast, col = NA, fill = "white") +
-  scale_fill_gradient2(na.value = "white", low = "darkred", mid = "grey90", high = "steelblue4", 
+  scale_fill_gradient2(na.value = "white", low = "darkred", mid = "grey90", high = "steelblue4",
                        name = "Change in\nHabitat Suitability", limits = c(-max_val, max_val)) +
   theme_void() +
   ggtitle(paste0(longname, " - Change in Habitat Suitability")) +
@@ -817,7 +821,7 @@ writeRaster(gcm_bins_stack, paste0("output/combined/projections/", scenario, "/"
 change_stack <- gcm_bins_stack - bins
 
 # substitute values
-change_stack <- change_stack %>% 
+change_stack <- change_stack %>%
   subst(c(-18, -17, -8, -7),
         c(-1, 0, NA, 1))
 
@@ -913,22 +917,22 @@ area_df <- bins2 %>%
 
 # repeat for all layers of gcm_bin_stack
 for(i in 1:nlyr(gcm_bins_stack)){
-  
+
   # convert to polygons
   bins_gcm <- gcm_bins_stack[[i]] %>%
     as.polygons(dissolve = T) %>%
     filter(mean == 3)
-  
+
   # split by subarea
   bins_gcm <- split(bins_gcm, subareas)
-  
+
   # extract subarea name for each polygon
   bins_gcm <- terra::intersect(bins_gcm, subareas)
-  
+
   # recode GAR_Names into interpretable names
   bins_gcm <- bins_gcm %>%
     left_join(names, by = "GAR_Name")
-  
+
   # calculate area of future core habitat in each subarea
   area_gcm_df <- bins_gcm %>%
     mutate(area_km2 = expanse(bins_gcm, unit = "km")) %>%
@@ -939,11 +943,11 @@ for(i in 1:nlyr(gcm_bins_stack)){
     ungroup() %>%
     complete(common_name = unique(names$common_name), fill = list(future_area_km2 = 0)) %>%
     mutate(gcm = gcms[i], ssp = scenario)
-  
+
   # calculate proportion of total core habitat per subarea
   area_gcm_df <- area_gcm_df %>%
     mutate(prop_area = future_area_km2 / sum(future_area_km2))
-  
+
   # join to other gcms
   if(i == 1){
     all_future_area <- area_gcm_df
@@ -969,10 +973,10 @@ future_summ <- all_future_area %>%
 
 # manually reorder subareas
 future_summ$common_name <- factor(future_summ$common_name, levels = rev(c("Falklands", "Marion", "Crozet", "Macquarie", "Kerguelen",
-                                                                          "Chilean Islands", "Heard", "South Georgia", "South Sandwich", 
+                                                                          "Chilean Islands", "Heard", "South Georgia", "South Sandwich",
                                                                           "Bouvet", "South of Marion", "South of Crozet",
-                                                                          "Southwest of Heard", "Southeast of Heard", 
-                                                                          "South Orkney", "Antarctic Peninsula", "Amundsen-Bellingshausen Seas", 
+                                                                          "Southwest of Heard", "Southeast of Heard",
+                                                                          "South Orkney", "Antarctic Peninsula", "Amundsen-Bellingshausen Seas",
                                                                           "Weddell Sea", "Queen Maud Land", "Enderby-Wilkes West",
                                                                           "Enderby-Wilkes East", "Eastern Ross Sea", "Western Ross Sea"
 )))

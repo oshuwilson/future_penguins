@@ -34,7 +34,7 @@ set.seed(777)
 # create dataframe of species and stage options
 meta <- expand.grid(species = c("ADPE", "CHPE", "EMPE", "GEPE", "KIPE", "MAPE"),
                     stage = c("chick-rearing", "incubation")) %>%
-  as_tibble()
+  as.data.frame()
 
 # remove EMPE and GEPE incubation (data limitations)
 meta <- meta %>%
@@ -42,10 +42,10 @@ meta <- meta %>%
 
 # add macaroni pre-moult
 meta <- meta %>%
-  bind_rows(tibble(species = "MAPE", stage = "pre-moult"))
+  bind_rows(data.frame(species = "MAPE", stage = "pre-moult"))
 
 # loop over each row of meta
-for(i in 1:nrow(meta)){
+for(i in 9:nrow(meta)){
   
   # define species and stage
   species <- meta$species[i]

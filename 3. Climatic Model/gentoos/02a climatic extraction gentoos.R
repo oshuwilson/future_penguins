@@ -985,6 +985,11 @@ north_pts <- pts
 
 # bind rows
 all_pts <- bind_rows(south_pts, mid_pts, kerg_pts, crozet_pts, north_pts)
+all_pts <- all_pts %>%
+  select(subarea, pa, avg_temp, avg_min_temp, avg_max_temp,
+         avg_prec, avg_min_prec, avg_max_prec,
+         avg_now, avg_min_now, avg_max_now,
+         sector, x, y)
 
 # export
 saveRDS(all_pts, paste0("output/climatic model/extraction/", species, " extracted.rds"))

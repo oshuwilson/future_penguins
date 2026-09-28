@@ -10,7 +10,7 @@ library(terra)
 library(GeoThinneR)
 
 # set species
-species <- "GEPE"
+species <- "ADPE"
 
 # set breeding stage
 this_stage <- "chick-rearing"
@@ -50,26 +50,44 @@ tracks %>%
 # 1. Subsample tracks
 #----------------------------------------------
 
-# limit to one point per individual per day
-thinned <- tracks %>%
-  group_by(individual_id, device_id, as_date(date)) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-
 # read in depth raster to spatially thin data to the same grid
 depth <- rast("~/OneDrive - University of Southampton/Documents/Predictor Data/processing/dShelf/depth.nc")
 
-# thin spatially to one point per grid cell
-quick_thin <- thin_points(
-  data = thinned,
-  lon_col = "lon",
-  lat_col = "lat",
-  method = "grid",
-  raster_obj = depth
-)
+# run over every individual
+inds <- unique(tracks$individual_id)
 
-# get thinned data
-thinned <- largest(quick_thin)
+for(ind in inds){
+  
+  # limit data to this individual
+  ind_data <- tracks %>%
+    filter(individual_id == ind)
+  
+  # thin spatially to one point per grid cell
+  quick_thin <- thin_points(
+    data = ind_data,
+    lon_col = "lon",
+    lat_col = "lat",
+    method = "grid",
+    raster_obj = depth
+  )
+  
+  # get thinned data
+  ind_thinned <- largest(quick_thin)
+  
+  # join to all other data
+  if(ind == inds[1]){
+    thinned <- ind_thinned
+  } else {
+    thinned <- rbind(thinned, ind_thinned)
+  }
+  
+}
+
+# limit to one point per individual per day
+thinned <- thinned %>%
+  group_by(individual_id, device_id, as_date(date)) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
 
 # plot
 thinned %>%

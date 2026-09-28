@@ -21,11 +21,12 @@ candidate_vars <- c("depth", "slope", "sst", "sal",
                     "sic", "curr", "mld", "dshelf")
 
 # define species and stage
-species <- "GEPE"
-stage <- "chick-rearing"
+species <- "KIPE"
+stage <- "incubation"
 
-# read in extracted data
+# read in extracted and subsampled data
 data <- readRDS(paste0("output/at-sea model/extraction/", species, " ", stage, " extracted subsampled.RDS"))
+
 
 #-------------------------------------------------------
 # Run collinearity testing
@@ -108,7 +109,7 @@ p1data %>%
 # criteria: is the VarImp below 0.05 for any number of trees?
 # criteria: does the VarImp decline when using 10 AND 20 trees?
 # criteria: does the range of VarImp scores for that variable exceed 0.1 (if declining with fewer trees)?
-key_reg_vars <- regression_vars[!regression_vars %in% c("")] # removes listed variables
+key_reg_vars <- regression_vars[!regression_vars %in% c()] # removes listed variables
 
 # set regression dataframe to use key_vars only
 regdata <- data %>%

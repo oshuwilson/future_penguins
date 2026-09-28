@@ -166,7 +166,7 @@ ggsave(paste0("output/imagery/combined suitability/gentoo/", species, "_suitabil
 # 1. Future Suitability
 
 # define scenario
-scenario <- "ssp585"
+scenario <- "ssp126"
 
 # gcms
 gcms <-  c("ACCESS-ESM1-5", "CanESM5", "CESM2-WACCM", "HadGEM3-GC31-LL", 

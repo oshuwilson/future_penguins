@@ -29,6 +29,14 @@ for(species in species_options){
   # read in extracted info
   data <- readRDS(paste0("output/climatic model/extraction/", species, " extracted.rds"))
   
+  # select key columns
+  data <- data %>%
+    select(subarea, pa, avg_temp, avg_min_temp, avg_max_temp,
+           avg_prec, avg_min_prec, avg_max_prec,
+           avg_now, avg_min_now, avg_max_now,
+           sip, fast_ice, dist2coast,
+           sector, x, y)
+  
   # remove NAs
   data <- data %>%
     na.omit()

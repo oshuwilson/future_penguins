@@ -62,7 +62,7 @@ foraging_585 <- readRDS("output/imagery/aspas/ssp585foraging_summary.rds")
 
 
 # define minimum threshold
-for(min_thresh in seq(0.05, 0.3, by = 0.05)){
+for(min_thresh in seq(0.15, 0.4, by = 0.05)){
   
   # for each species
   for(this_species in c("ADPE", "CHPE", "EMPE", "GEPE")){
@@ -220,12 +220,12 @@ for(min_thresh in seq(0.05, 0.3, by = 0.05)){
           panel.grid.minor.x = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.grid.major.y = element_line(color = "grey80"), 
-          axis.text = element_text(size = 11), 
-          axis.title = element_text(size = 12, color = "grey20"))
+          axis.text = element_text(size = 13), 
+          axis.title = element_text(size = 13, color = "grey20"))
   print(p1)
   
   # append to list
-  if(min_thresh == 0.05){
+  if(min_thresh == 0.15){
     thresh_plots <- list(p1)
   } else {
     thresh_plots <- c(thresh_plots, list(p1))

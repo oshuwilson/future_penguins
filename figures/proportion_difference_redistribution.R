@@ -32,8 +32,16 @@ sub0 <- sub0 %>%
 
 # don't include combos where species currently live
 sub0 <- sub0 %>%
-  filter(species != "CHPE" | common_name != "Eastern Ross Sea") %>%
-  filter(species != "GEPE" | common_name != "Macquarie")
+  filter_out(species == "CHPE" & common_name == "Eastern Ross Sea" |
+               species == "GEPE" & common_name == "South Georgia" |
+               species == "MAPE" & common_name == "South Georgia" |
+               species == "MAPE" & common_name == "Heard" | 
+               species == "CHPE" & common_name == "Bouvet")
+
+# add combos where species do not live and loss is projected
+sub0 <- sub0 %>%
+  ungroup() %>%
+  add_row(species = "ADPE", common_name = "Bouvet")
 
 # remove these combos from the data
 figdata <- figdata %>%
@@ -131,13 +139,12 @@ p1 <- ggplot(figdata, aes(x = common_name, y = diff_prop_mean)) +
         panel.grid.minor.x = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.grid.major.x = element_line(color = "grey75"),
-        strip.text = element_text(face = "bold", size = 12)) 
-p1
+        strip.text = element_text(face = "bold", size = 12))
 
 # change axis text and axis labels font size
 p1 <- p1 + theme(axis.text.y = element_text(size = 12, vjust = 0),
                  axis.text.x = element_text(size = 12),
-                 axis.title = element_text(size = 12),
+                 axis.title = element_text(size = 14),
                  legend.text = element_text(size = 10),
                  legend.title = element_text(size = 12))
 

@@ -25,6 +25,12 @@ for i in *30yr*.nc; do echo $i; rm $i; done
 # calculate deltas for SSP126 - might need to change the output file name based on download names
 for i in *ssp126**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_201501-210012__climatology.nc}_delta.nc"; done
 
+# repeat for SSP245
+for i in *ssp245**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_201501-210012__climatology.nc}_delta.nc"; done
+
+# repeat for SSP370
+for i in *ssp370**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_201501-210012__climatology.nc}_delta.nc"; done
+
 # repeat for SSP585
 for i in *ssp585**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_201501-210012__climatology.nc}_delta.nc"; done
 
@@ -59,3 +65,19 @@ for i in *198101-199012*.nc; do echo $i; second="${i/198101-199012/199101-200012
 
 # UKESM combine decades
 for i in *195001-199912*.nc; do echo $i; second="${i/195001-199912/200001-201412}"; echo $second; cdo mergetime $i $second "${i/195001-199912/195001-201412}"; done
+
+# IPSL delta names
+for i in *ssp245**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_201501-210012_del__climatology.nc}_delta.nc"; done
+
+for i in *ssp370**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_201501-210012_del__climatology.nc}_delta.nc"; done
+
+# UKESM/HadGEM delta names
+for i in *ssp245**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_205001-210012__climatology.nc}_delta.nc"; done
+
+for i in *ssp370**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_205001-210012__climatology.nc}_delta.nc"; done
+
+# NorESM delta names
+for i in *ssp245**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_206101-210012__climatology.nc}_delta.nc"; done
+
+for i in *ssp370**climatology*.nc; do echo $i; var=$(basename "$i" | cut -d'_' -f1); echo $var; hist_file=$(ls *historical*climatology*.nc 2>/dev/null | grep "^${var}_" || true); echo $hist_file; cdo sub $i $hist_file "${i%_gn_206101-210012__climatology.nc}_delta.nc"; done
+

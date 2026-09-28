@@ -33,7 +33,11 @@ cores <- 78
 set.seed(777)
 
 # define species
-species <- "EMPE"
+all_species <- "CHPE"
+
+for(species in all_species){
+
+print(species)
 
 #---------------------------------------------------
 # 2. Source Modelling Scripts
@@ -47,10 +51,6 @@ source("code/3. Climatic Model/03 climatic random forests iridis.R")
 print("Boosted Regression Trees")
 source("code/3. Climatic Model/03 climatic boosted regression trees iridis.R")
 
-# maxent
-print("MaxEnt")
-source("code/3. Climatic Model/03 climatic maxent iridis.R")
-
 # generalised additive models
 print("Generalised Additive Models")
 source("code/3. Climatic Model/03 climatic generalised additive models iridis.R")
@@ -58,3 +58,5 @@ source("code/3. Climatic Model/03 climatic generalised additive models iridis.R"
 # bayesian additive regression trees
 print("Bayesian Additive Regression Trees")
 source("code/3. Climatic Model/03 climatic bayesian additive regression trees iridis.R")
+
+}

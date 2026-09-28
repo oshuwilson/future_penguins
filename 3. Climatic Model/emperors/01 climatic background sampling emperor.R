@@ -83,17 +83,18 @@ ggplot(penguin_potential) +
 # convert into lines for coastline
 penguin_lines <- penguin_potential %>% as.lines()
 
-# buffer lines by max distance of any penguin colony to the coast (1.375km)
-penguin_buff <- buffer(penguin_lines, 1375)
+# buffer lines by max distance of any emperor penguin colony to the coast (184km)
+penguin_buff <- buffer(penguin_lines, 184000)
 
-# sample 30,000 background points
+# only keep points that intersect with ocean (no points on land)
+penguin_buff <- erase(penguin_buff, penguin_potential)
+
+# sample 30000 background points
 bg <- spatSample(penguin_buff, 30000)
 
-# only keep points that intersect with land (no points at sea)
-bg <- mask(bg, penguin_potential)
-
-# check sample size
+# check samples
 nrow(bg)
+plot(bg)
 
 # load CCAMLR subareas
 subareas <- load_ASDs() %>% vect() %>%
@@ -140,9 +141,9 @@ background <- bg_subareas %>%
 background <- background %>%
   mutate(subarea = case_when(
     x > -65 & x < -55 & y > -55 ~ "Falklands",
-    x > 155 & x < 160 & y > -55 & y < -53 ~ "Macquarie",
-    x > 160 & x < 180 & y > -55 & y < -47.5 ~ "NZ Subantarctic",
-    x > 0 & x < 10 & y > -55 & y < -50 ~ "Bouvet",
+    x > 155 & x < 161 & y > -56 & y < -52 ~ "Macquarie",
+    x > 160 & y > -55 & y < -40 | x < -170 & y > -55 & y < -40 ~ "NZ Subantarctic",
+    x > 0 & x < 10 & y > -57 & y < -50 ~ "Bouvet",
     x > 75 & x < 80 & y > -42 ~ "Amsterdam and St Paul",
     x > -15 & x < -5 & y > -42 ~ "Tristan da Cunha",
     x < -65 & y > -58 ~ "Chile", 
@@ -158,4 +159,4 @@ ggplot(bgp %>% project("epsg:3031"), aes(col = subarea)) +
 
 # export
 saveRDS(background,
-        "output/climatic model/background/background template.rds")
+        "output/climatic model/background/background template emperor.rds")

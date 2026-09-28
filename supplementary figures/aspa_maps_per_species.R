@@ -40,7 +40,7 @@ for(this_species in c("ADPE", "CHPE", "EMPE", "GEPE")){
     pull(ASPA_No)
   
   # minimum threshold based on 5th percentile
-  min_thresh <- 0.15
+  min_thresh <- 0.25
   
   # for each aspa
   for(this_aspa in these_aspas){

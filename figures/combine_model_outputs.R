@@ -11,8 +11,8 @@ library(terra)
 library(scam)
 
 # define species
-species <- "KIPE"
-longname <- "King Penguin"
+species <- "CHPE"
+longname <- "Chinstrap Penguin"
 
 #-------------------------------------------------------------------------------
 # 1. Read in accessible habitat
@@ -57,6 +57,7 @@ df <- colonies %>%
 
 # get threshold using max TSS
 threshold <- tidysdm::optim_thresh(df$pa, df$prediction, metric = "tss_max", event_level = "second")
+threshold <- readRDS(paste0("output/climatic model/thresholds/", species, "_tss_max_threshold.RDS"))
 
 # export threshold
 saveRDS(threshold, paste0("output/climatic model/thresholds/", species, "_tss_max_threshold.RDS"))
@@ -68,6 +69,7 @@ climatic_core_habitat <- climatic_prediction >= threshold
 climatic_core_habitat <- climatic_core_habitat %>%
   as.polygons() %>%
   filter(mean == 1)
+plot(climatic_core_habitat)
 
 # areas that overlap with available habitat
 present_habitat <- climatic_core_habitat %>%
@@ -97,7 +99,6 @@ for(this_stage in stage_options){
   
   # read in predicted ensemble suitability
   hs <- rast(paste0("output/at-sea model/predictions/", species, "_", this_stage, "_simple_ensemble.tif"))
-  plot(hs)
   
   # project present habitat to at-sea model crs
   present_habitat <- present_habitat %>%
@@ -237,10 +238,12 @@ if(species == "MAPE"){
 if(species == "ADPE"){
   sens_val <- 0.7
 }
-threshold <- tidysdm::optim_thresh(df$pb, df$prediction, metric = c("sensitivity", sens_val), event_level = "second")
+
+#threshold <- tidysdm::optim_thresh(df$pb, df$prediction, metric = c("sensitivity", sens_val), event_level = "second")
+threshold <- readRDS(paste0("output/combined/thresholds/", species, "_threshold.RDS"))
 
 # export threshold
-saveRDS(threshold, paste0("output/combined/thresholds/", species, "_threshold.RDS"))
+#saveRDS(threshold, paste0("output/combined/thresholds/", species, "_threshold.RDS"))
 
 # classify raster using threshold
 mat1 <- matrix(c(0, threshold, 10,
@@ -286,9 +289,9 @@ ggsave(paste0("output/imagery/combined suitability/", species, "_suitability.png
 
 
 #-------------------------------------------------------------------------------
-# Alternative version for emperors using dist2coast and climatic suitability 
+# Alternative version for emperors using dist2coast and climatic suitability
 #-------------------------------------------------------------------------------
-# emperors do not breed on land but on sea ice so cannot use same approach for 
+# emperors do not breed on land but on sea ice so cannot use same approach for
 # constraining the at-sea predictions
 
 # cleanup
@@ -324,6 +327,8 @@ df <- colonies %>%
 
 # get threshold using max TSS
 threshold <- tidysdm::optim_thresh(df$pa, df$prediction, metric = "tss_max", event_level = "second")
+threshold <- readRDS(paste0("output/climatic model/thresholds/", species, "_tss_max_threshold.RDS"))
+
 
 # export threshold
 saveRDS(threshold, paste0("output/climatic model/thresholds/", species, "_tss_max_threshold.RDS"))
@@ -354,7 +359,7 @@ plot(dist2coast_masked)
 
 # convert to polygons
 dist2coast_habitat <- dist2coast_masked %>%
-  as.polygons() 
+  as.polygons()
 
 # overlap of climatic suitable habitat and dist2coast habitat
 present_habitat <- climatic_core_habitat %>%
@@ -371,96 +376,96 @@ plot(present_habitat)
 if(species == "MAPE"){
   stage_options <- c("chick-rearing", "incubation", "pre-moult")
 } else if(species %in% c("GEPE", "EMPE")) {
-  stage_options <- "chick-rearing" 
+  stage_options <- "chick-rearing"
 } else {
   stage_options <- c("chick-rearing", "incubation")
 }
 
 # for each stage, read in at-sea suitability
 for(this_stage in stage_options){
-  
+
   # read in predicted ensemble suitability
   hs <- rast(paste0("output/at-sea model/predictions/", species, "_", this_stage, "_simple_ensemble.tif"))
   plot(hs)
-  
+
   # project present habitat to at-sea model crs
   present_habitat <- present_habitat %>%
     project(crs(hs))
-  
+
   # rasterize present habitat
   hab_rast <- rasterize(present_habitat, hs, touches = T)
   hab_rast[is.na(hab_rast)] <- 0
   hab_rast[hab_rast > 0] <- 100
-  
+
   # read in land file
   land <- rnaturalearth::ne_countries(scale = 10, returnclass = "sv")
-  
+
   # crop land to below 40 degrees south
   land <- crop(land, ext(-180, 180, -90, -40))
-  
+
   # project land to depth raster CRS
   land <- project(land, "epsg:4326")
-  
+
   # rasterise land
   land_rast <- rasterize(land, hs, touches = T)
   land_rast[is.na(land_rast)] <- 0
-  
+
   # add habitat and land rasters
   grd <- hab_rast + land_rast
-  
+
   # convert land values to NA
   grd[grd == 1] <- NA
-  
+
   # revalue habitat locations
   grd[grd == 100] <- 101
-  
+
   # calculate distance to colonies
   dist_rast <- gridDist(grd, target = 101, scale = 1000)
-  
+
   # read in scam model for availability
   scam <- readRDS(paste0("output/at-sea model/availability/", species, "_", this_stage, "_scam_model.RDS"))
-  
+
   # create dataframe for prediction
   testdata <- as.points(dist_rast) %>%
     as.data.frame(geom = "XY")
-  
+
   # rename dist2col column
   names(testdata)[1] <- "dist2col"
-  
+
   # predict using fitted model
   pred <- predict.scam(scam, testdata, type = "response")
   pred <- as.vector(pred)
-  
+
   # add to database
   testdata$pscam <- pred
-  
+
   # convert prediction to points
   predscam <- testdata %>%
     vect(geom = c("x", "y"), crs = crs(dist_rast))
-  
+
   # rasterise prediction
   predrast <- rasterize(predscam, dist_rast, field = "pscam")
-  
+
   # multiply predicted suitability by availability
   hs_av <- hs * predrast
-  
+
   # export suitability raster
   writeRaster(hs_av, paste0("output/combined/predictions/", species, "_", this_stage, "_combined_suitability.tif"),
               overwrite = TRUE)
-  
+
   # view around the South Atlantic
   plot(hs_av %>% crop(ext(-90, -30, -70, -50)))
-  
+
   # view around the South Indian Ocean
   plot(hs_av %>% crop(ext(20, 100, -60, -40)))
-  
+
   # view around Macquarie
   plot(hs_av %>% crop(ext(150, 170, -60, -50)))
-  
-  # project 
+
+  # project
   # hs_av_proj <- project(hs_av, "epsg:6932")
   # plot(hs_av_proj)
-  
+
   # stack with other stages
   if(this_stage == stage_options[1]){
     combined_stack <- hs_av
@@ -508,7 +513,7 @@ df <- data %>%
 
 # get threshold using sensitivity (explore sensitivity values until no present day overprediction)
 if(species == "EMPE"){
-  sens_val <- 0.83
+  sens_val <- 0.9
 }
 threshold <- tidysdm::optim_thresh(df$pb, df$prediction, metric = c("sensitivity", sens_val), event_level = "second")
 

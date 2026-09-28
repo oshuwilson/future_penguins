@@ -81,7 +81,10 @@ dynamic_extract <- function(predictor, tracks, crop=TRUE){
     
     tracks_extracted <- rbind(tracks_extracted, xtractions) #bind together all years
     rm(pred) #remove pred to maintain next statement
-  }
+    
+    # print year progress
+    print(paste0("Finished extracting ", predictor, " for year ", z))
+    }
   
   #remove yday column for next predictor to work
   tracks_extracted <- dplyr::select(tracks_extracted, -yday, -year)

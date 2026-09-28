@@ -17,7 +17,7 @@ library(tidyterra)
 species <- "EMPE"
 
 # read in background samples
-bg <- readRDS("output/climatic model/background/background template.rds")
+bg <- readRDS("output/climatic model/background/background template emperor.rds")
 
 # read in colonies
 cols <- readRDS(paste0("data/colonies/subareas/", species, "_colonies_subareas.RDS"))
@@ -29,12 +29,6 @@ bg <- bg %>%
 cols <- cols %>%
   vect(geom = c("x", "y"), crs = "epsg:4326") %>%
   project("epsg:6932")
-
-# apply a 100km buffer around the colonies
-buff <- buffer(cols, 100000)
-
-# erase background locations within buffer
-bg <- erase(bg, buff)
 
 # plot together
 ggplot() +
@@ -48,6 +42,7 @@ cols <- cols %>%
 bg <- bg %>%
   mutate(pa = "absence")
 pts <- bind_spat_rows(cols, bg)
+
 
 #-------------------------------------------------------------------------------
 # 2. Compute temperature, precipitation, and nearest open water data
@@ -223,7 +218,7 @@ pts <- pts %>%
 pts <- pts %>%
   mutate(dist2coast = ifelse(is.na(dist2coast), 125000, dist2coast))
 
-# if sea ice persistence is NA, make 0 is now is 0 or random number from 240 to 365 if now > 0
+# if sea ice persistence is NA, make 0 if now is 0 or random number from 240 to 365 if now > 0
 pts <- pts %>%
   mutate(sip = case_when(
     is.na(sip) & avg_now == 0 ~ 0,
@@ -257,3 +252,19 @@ writeRaster(avg_max_now, paste0("output/climatic model/rasters/now/", species, "
 
 # sea ice persistence
 writeRaster(sip, paste0("output/climatic model/rasters/", species, "_sip.tif"))
+
+
+# read in for reuse
+avg_temp <- rast(paste0("output/climatic model/rasters/temp/", species, "_avg_temp.tif"))
+avg_min_temp <- rast(paste0("output/climatic model/rasters/temp/", species, "_avg_min_temp.tif"))
+avg_max_temp <- rast(paste0("output/climatic model/rasters/temp/", species, "_avg_max_temp.tif"))
+
+avg_prec <- rast(paste0("output/climatic model/rasters/prec/", species, "_avg_prec.tif"))
+avg_min_prec <- rast(paste0("output/climatic model/rasters/prec/", species, "_avg_min_prec.tif"))
+avg_max_prec <- rast(paste0("output/climatic model/rasters/prec/", species, "_avg_max_prec.tif"))
+
+avg_now <- rast(paste0("output/climatic model/rasters/now/", species, "_avg_now.tif"))
+avg_min_now <- rast(paste0("output/climatic model/rasters/now/", species, "_avg_min_now.tif"))
+avg_max_now <- rast(paste0("output/climatic model/rasters/now/", species, "_avg_max_now.tif"))
+
+sip <- rast(paste0("output/climatic model/rasters/", species, "_sip.tif"))

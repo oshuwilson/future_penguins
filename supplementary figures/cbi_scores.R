@@ -92,7 +92,7 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 library(tidyverse)
 
 # define model
-model <- "at-sea model"
+model <- "climatic model"
 
 # list all files for this model
 files <- list.files(path = paste0("output/", model), 
@@ -186,7 +186,8 @@ p <- ggplot(cbi_mean, aes(x = algorithm, y = mean_cbi, fill = species)) +
   ylab("Continuous Boyce Index") +
   xlab("Algorithm") +
   scale_fill_manual(values = c("#000004", "#00768B", "#84206B", 
-                               "#C9404A", "#F67F13", "#F6D645")) 
+                               "#C9404A", "#F67F13", "#F6D645"),
+                    name = "Species") 
 p + ggview::canvas(width = 8, height = 6)
 
 # export

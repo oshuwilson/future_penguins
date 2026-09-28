@@ -2,29 +2,9 @@
 # Fit Climatic Generalised Additive Models
 #----------------------------------------------
 
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
-
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
-
 # 1. Configuration 
 
-# set seed
-set.seed(777)
-
-# define species 
-species <- "ADPE"
+rm(list=setdiff(ls(), c("cores", "species")))
 
 # read in thinned data
 data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
@@ -106,7 +86,6 @@ for(i in 1:27){
     add_recipe(rec) 
 
   # enable parallelisation
-  cores <- 10
   plan(multisession, workers = cores)
   
   #run models with tuning
@@ -121,7 +100,7 @@ for(i in 1:27){
   
   #extract best model
   best <- show_best(tun, metric = "tss_max") %>%
-    filter(n == v)
+    filter(n == max(n))
   
   # append predictors
   best <- best %>%
@@ -238,7 +217,6 @@ saveRDS(metrics,
 
 
 # 3b. Variable Importance Scores
-library(DALEXtra)
 
 # explain model
 explainer <- explain(model = gam1, 
@@ -267,20 +245,12 @@ vi_scores <- vi_scores %>%
   rename(Variable = variable,
          Importance = dropout_loss)
 
-# plot
-ggplot(vi_scores, aes(x = reorder(Variable, Importance), y = Importance)) +
-  geom_col(fill = "darkblue") +
-  coord_flip() +
-  labs(x = "Variable", y = "Importance") +
-  theme_bw()
-
 # export
 saveRDS(vi_scores,
         paste0("output/climatic model/generalised additive models/", species, "_varimp_scores.rds"))
 
 
 # 3c. Partial Dependence Plot Data
-library(gratia)
 
 # get smooths
 sm <- smooth_estimates(gam1, n = 1000) %>%
@@ -296,16 +266,6 @@ sm <- sm %>%
                names_to = "var",
                values_to = "x") %>%
   drop_na(x)
-
-# plot predictions
-p1 <- ggplot(sm, aes(x, .estimate)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p1
 
 # format same as PDPs
 sm <- sm %>%

@@ -437,8 +437,41 @@ for(scenario in c("ssp126", "ssp585")){
     gam <- rast(paste0("penguins/output/climatic model/projections/", scenario, "/", gcm, "/", species, "_", gcm, "_", scenario, "_gam_prediction.tif"))
     bart <- rast(paste0("penguins/output/climatic model/projections/", scenario, "/", gcm, "/", species, "_", gcm, "_", scenario, "_bart_prediction.tif"))
     
-    # stack predictions
-    pred_stack <- c(rf, brt, gam, bart)
+    # read in cbi scores for model exclusion
+    rf_cbi <- readRDS(paste0("penguins/output/climatic model/random forests/", species, "_cbi_scores.rds")) %>%
+      arrange(desc(mean)) %>%
+      slice(1) %>%
+      pull(mean)
+    
+    brt_cbi <- readRDS(paste0("penguins/output/climatic model/boosted regression trees/", species, "_cbi_scores.rds")) %>%
+      arrange(desc(mean)) %>%
+      slice(1) %>%
+      pull(mean)
+    
+    maxent_cbi <- readRDS(paste0("penguins/output/climatic model/maxent/", species, "_cbi_scores.rds")) %>%
+      arrange(desc(mean)) %>%
+      slice(1) %>%
+      pull(mean)
+    
+    gam_cbi <- readRDS(paste0("penguins/output/climatic model/generalised additive models/", species, "_cbi_scores.rds")) %>%
+      arrange(desc(mean)) %>%
+      slice(1) %>%
+      pull(mean)
+    
+    bart_cbi <- readRDS(paste0("penguins/output/climatic model/bayesian additive regression trees/", species, "_cbi_scores.rds")) %>%
+      arrange(desc(mean)) %>%
+      slice(1) %>%
+      pull(mean)
+    
+    # create stack of accurate predictions 
+    pred_list <- list()
+    
+    if (rf_cbi >= 0.4)   pred_list <- c(pred_list, list(rf))
+    if (brt_cbi >= 0.4)  pred_list <- c(pred_list, list(brt))
+    if (gam_cbi >= 0.4)  pred_list <- c(pred_list, list(gam))
+    if (bart_cbi >= 0.4) pred_list <- c(pred_list, list(bart))
+    
+    pred_stack <- do.call(c, pred_list)
     
     # simple ensemble
     simple <- app(pred_stack, mean, na.rm = TRUE)

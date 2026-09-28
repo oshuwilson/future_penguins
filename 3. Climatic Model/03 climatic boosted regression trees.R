@@ -2,28 +2,9 @@
 # Fit Climatic Boosted Regression Trees
 #----------------------------------------------
 
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
-
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
 # 1. Configuration 
 
-# set seed
-set.seed(777)
-
-# define species 
-species <- "ADPE"
+rm(list=setdiff(ls(), c("cores", "species")))
 
 # read in thinned data
 data <- readRDS(paste0("output/climatic model/thinned/", species, " env thinned.rds")) %>%
@@ -60,7 +41,7 @@ for(i in 1:27){
   #define BRT
   brt_mod <- boost_tree() %>%
     set_mode("classification") %>%
-    set_engine("lightgbm" #use lightgbm package
+    set_engine("lightgbm", num_threads = 1 #use lightgbm package
     ) %>%
     set_args(trees = tune(),
              tree_depth = tune(), 
@@ -97,22 +78,21 @@ for(i in 1:27){
     add_recipe(rec)
   
   # enable parallelisation
-  cores <- 10
-  plan(multisession, workers = cores)
+  plan(sequential)
   
   #run models with tuning
   tun <- tune_grid(brt_wf,
                    resamples = folds,
                    grid = grid,
                    metrics = sdm_metric_set(),
-                   control = control_grid(verbose=F)) 
+                   control = control_grid(verbose=T)) 
   
   #get metric scores for each tuning value
   metrics <- collect_metrics(tun, summarize = F)
   
   #extract best model
   best <- show_best(tun, metric = "tss_max") %>%
-    filter(n == v)
+    filter(n == max(n))
   
   # append predictors
   best <- best %>%
@@ -222,10 +202,7 @@ saveRDS(metrics,
 
 
 # 3b. Variable Importance Scores
-vi_scores <- vip::vi(best_fit)
-
-# plot
-vip::vip(best_fit)
+vi_scores <- vi(best_fit)
 
 # export
 saveRDS(vi_scores,
@@ -233,7 +210,6 @@ saveRDS(vi_scores,
 
 
 # 3c. Partial Dependence Plot Data
-library(DALEXtra)
 
 #get explainer
 explainer <- explain_tidymodels(model = best_fit, 
@@ -251,16 +227,6 @@ pdp_ovr <- as_tibble(pdps$agr_profiles) %>%
   rename(x = `_x_`, yhat = `_yhat_`, var = `_vname_`) %>%
   dplyr::select(var, x, yhat) %>%
   mutate(yhat = 1-yhat)
-
-# plot PDPs
-p1 <- ggplot(pdp_ovr, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p1
 
 # export PDP values
 saveRDS(pdp_ovr,

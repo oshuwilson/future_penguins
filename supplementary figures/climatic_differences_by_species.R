@@ -80,7 +80,7 @@ max_hs <- max(c(minmax(present)[2,], minmax(mean126)[2,], minmax(mean585)[2,]))
 p1 <- ggplot() +
   geom_spatraster(data = present) +
   scale_fill_viridis_c(limits = c(0, max_hs), na.value = "transparent", name = "Habitat Suitability") +
-  geom_spatvector(data = coast, fill = NA, col = "white") +
+  geom_spatvector(data = coast, fill = "white", col = "white") +
   theme_void() +
   ggtitle("2000-2020") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -90,7 +90,7 @@ p1
 p2 <- ggplot() +
   geom_spatraster(data = mean126) +
   scale_fill_viridis_c(limits = c(0, max_hs), na.value = "transparent", name = "Habitat Suitability") +
-  geom_spatvector(data = coast, fill = NA, col = "white") +
+  geom_spatvector(data = coast, fill = "white", col = "white") +
   theme_void() +
   ggtitle("2080-2100 SSP126 (GCM Average)") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -100,7 +100,7 @@ p2
 p3 <- ggplot() +
   geom_spatraster(data = mean585) +
   scale_fill_viridis_c(limits = c(0, max_hs), na.value = "transparent", name = "Habitat Suitability") +
-  geom_spatvector(data = coast, fill = NA, col = "white") +
+  geom_spatvector(data = coast, fill = "white", col = "white") +
   theme_void() +
   ggtitle("2080-2100 SSP585 (GCM Average)") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -114,7 +114,7 @@ maxdiff <- max(c(minmax(diff126)[2,], minmax(diff585)[2,]))
 p4 <- ggplot() +
   geom_spatraster(data = diff126) +
   scale_fill_gradient2(limits = c(mindiff, maxdiff), na.value = "transparent", name = expression(Delta~"Habitat Suitability"), mid = "grey90") +
-  geom_spatvector(data = coast, fill = NA, col = "black") +
+  geom_spatvector(data = coast, fill = "black", col = "black") +
   theme_void() +
   ggtitle("Suitability Differences SSP126") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -124,7 +124,7 @@ p4
 p5 <- ggplot() +
   geom_spatraster(data = diff585) +
   scale_fill_gradient2(limits = c(mindiff, maxdiff), na.value = "transparent", name = expression(Delta~"Habitat Suitability"), mid = "grey90") +
-  geom_spatvector(data = coast, fill = NA, col = "black") +
+  geom_spatvector(data = coast, fill = "black", col = "black") +
   theme_void() +
   ggtitle("Suitability Differences SSP585") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -137,7 +137,7 @@ maxsd <- max(c(minmax(sd126)[2,], minmax(sd585)[2,]))
 p6 <- ggplot() +
   geom_spatraster(data = sd126) +
   scale_fill_viridis_c(limits = c(0, maxsd), na.value = "transparent", name = "Habitat Suitability\nStandard Deviation") +
-  geom_spatvector(data = coast, fill = NA, col = "white") +
+  geom_spatvector(data = coast, fill = "white", col = "white") +
   theme_void() +
   ggtitle("2080-2100 SSP126 (GCM Variability)") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -147,7 +147,7 @@ p6
 p7 <- ggplot() +
   geom_spatraster(data = sd585) +
   scale_fill_viridis_c(limits = c(0, maxsd), na.value = "transparent", name = "Habitat Suitability\nStandard Deviation") +
-  geom_spatvector(data = coast, fill = NA, col = "white") +
+  geom_spatvector(data = coast, fill = "white", col = "white") +
   theme_void() +
   ggtitle("2080-2100 SSP585 (GCM Variability)") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -177,6 +177,7 @@ sdplots
 
 # plot all together
 full_grid <- plot_grid(p1, meanplots, diffplots, sdplots, ncol = 1)
+full_grid + ggview::canvas(10, 16)
 
 # export
 ggsave(paste0("output/climatic model/species plots/", species, "_mean_diff_sd.png"),
@@ -322,12 +323,12 @@ p1
 # plot ssp585 core habitat change
 p2 <- ggplot() +
   geom_spatraster(data = total585) +
+  geom_spatvector(data = coast, fill = NA, col = "black") +
   scale_fill_steps2(na.value = "transparent", name = "Projected Core Habitat Change", 
                     mid = "grey90", breaks = -9:9, limits = c(-9, 8),
                     labels = function(x) case_when(x == -9 ~ "All models\nproject loss",
                                                    x == 8 ~ "All models\nproject gain",
                                                    TRUE ~ "")) +
-  geom_spatvector(data = coast, fill = NA, col = "black") +
   theme_void() +
   theme(plot.title = element_text(hjust = 0.5), 
         legend.position = "bottom",
@@ -455,342 +456,342 @@ saveRDS(colonies,
 # Plot projected core habitat gain and loss by subarea
 #-------------------------------------------------------------------------------
 
-# reset variables
-rm(list = setdiff(ls(), "species"))
-
-# read in present day raster
-present <- rast(paste0("output/climatic model/predictions/", species, "_simple_ensemble.tif"))
-
-# read in colony locations and background samples
-colonies <- readRDS(paste0("output/climatic model/extraction/", species, " extracted.rds"))
-
-# convert to terra
-colonies <- colonies %>%
-  vect(geom = c("x", "y"), crs = crs(present))
-
-# extract values to data
-colonies$prediction <- terra::extract(present, colonies, ID = F)
-
-# get dataframe of truth level and prediction
-df <- colonies %>%
-  as.data.frame() %>%
-  select(pa, prediction) %>%
-  mutate(pa = as.factor(pa)) %>%
-  na.omit()
-
-# get threshold using max_kappa (or max TSS?)
-threshold <- tidysdm::optim_thresh(df$pa, df$prediction, metric = "tss_max", event_level = "second")
-
-# classify raster using threshold
-mat1 <- matrix(c(0, threshold, 10,
-                 threshold, 1, 20),
-               ncol = 3, byrow = T)
-bins <- classify(present, mat1)
-plot(bins)
-
-# predict future binary classes for each gcm
-mat2 <- matrix(c(0, threshold, 2,
-                 threshold, 1, 3),
-               ncol = 3, byrow = T)
-
-# read in future ensemble predictions for ssp126
-access126 <- rast(paste0("output/climatic model/projections/ssp126/ACCESS-ESM1-5/", species, "_ACCESS-ESM1-5_ssp126_simple_ensemble.tif"))
-can126 <- rast(paste0("output/climatic model/projections/ssp126/CanESM5/", species, "_CanESM5_ssp126_simple_ensemble.tif"))
-cesm126 <- rast(paste0("output/climatic model/projections/ssp126/CESM2-WACCM/", species, "_CESM2-WACCM_ssp126_simple_ensemble.tif"))
-hadgem126 <- rast(paste0("output/climatic model/projections/ssp126/HadGEM3-GC31-LL/", species, "_HadGEM3-GC31-LL_ssp126_simple_ensemble.tif"))
-ipsl126 <- rast(paste0("output/climatic model/projections/ssp126/IPSL-CM6A-LR/", species, "_IPSL-CM6A-LR_ssp126_simple_ensemble.tif"))
-mri126 <- rast(paste0("output/climatic model/projections/ssp126/MRI-ESM2-0/", species, "_MRI-ESM2-0_ssp126_simple_ensemble.tif"))
-nor126 <- rast(paste0("output/climatic model/projections/ssp126/NorESM2-MM/", species, "_NorESM2-MM_ssp126_simple_ensemble.tif"))
-ukesm126 <- rast(paste0("output/climatic model/projections/ssp126/UKESM1-0-LL/", species, "_UKESM1-0-LL_ssp126_simple_ensemble.tif"))
-
-# read in future ensemble predictions for ssp585
-access585 <- rast(paste0("output/climatic model/projections/ssp585/ACCESS-ESM1-5/", species, "_ACCESS-ESM1-5_ssp585_simple_ensemble.tif"))
-can585 <- rast(paste0("output/climatic model/projections/ssp585/CanESM5/", species, "_CanESM5_ssp585_simple_ensemble.tif"))
-cesm585 <- rast(paste0("output/climatic model/projections/ssp585/CESM2-WACCM/", species, "_CESM2-WACCM_ssp585_simple_ensemble.tif"))
-hadgem585 <- rast(paste0("output/climatic model/projections/ssp585/HadGEM3-GC31-LL/", species, "_HadGEM3-GC31-LL_ssp585_simple_ensemble.tif"))
-ipsl585 <- rast(paste0("output/climatic model/projections/ssp585/IPSL-CM6A-LR/", species, "_IPSL-CM6A-LR_ssp585_simple_ensemble.tif"))
-mri585 <- rast(paste0("output/climatic model/projections/ssp585/MRI-ESM2-0/", species, "_MRI-ESM2-0_ssp585_simple_ensemble.tif"))
-nor585 <- rast(paste0("output/climatic model/projections/ssp585/NorESM2-MM/", species, "_NorESM2-MM_ssp585_simple_ensemble.tif"))
-ukesm585 <- rast(paste0("output/climatic model/projections/ssp585/UKESM1-0-LL/", species, "_UKESM1-0-LL_ssp585_simple_ensemble.tif"))
-
-# classify each gcm projection - ssp126
-access126_bins <- classify(access126, mat2)
-can126_bins <- classify(can126, mat2)
-cesm126_bins <- classify(cesm126, mat2)
-hadgem126_bins <- classify(hadgem126, mat2)
-ipsl126_bins <- classify(ipsl126, mat2)
-mri126_bins <- classify(mri126, mat2)
-nor126_bins <- classify(nor126, mat2)
-ukesm126_bins <- classify(ukesm126, mat2)
-
-# classify each gcm projection - ssp585
-access585_bins <- classify(access585, mat2)
-can585_bins <- classify(can585, mat2)
-cesm585_bins <- classify(cesm585, mat2)
-hadgem585_bins <- classify(hadgem585, mat2)
-ipsl585_bins <- classify(ipsl585, mat2)
-mri585_bins <- classify(mri585, mat2)
-nor585_bins <- classify(nor585, mat2)
-ukesm585_bins <- classify(ukesm585, mat2)
-
-# stack binned projections
-bin_stack126 <- c(access126_bins, can126_bins, cesm126_bins, hadgem126_bins,
-                  ipsl126_bins, mri126_bins, nor126_bins, ukesm126_bins)
-bin_stack585 <- c(access585_bins, can585_bins, cesm585_bins, hadgem585_bins,
-                  ipsl585_bins, mri585_bins, nor585_bins, ukesm585_bins)
-
-# subtract present day from future
-diff126 <- bin_stack126 - bins
-diff585 <- bin_stack585 - bins
-
-# substitute values
-diff126 <- diff126 %>% 
-  subst(c(-18, -17, -8, -7),
-        c(-1, 0, NA, 1))
-diff585 <- diff585 %>%
-  subst(c(-18, -17, -8, -7),
-        c(-1, 0, NA, 1))
-
-# project
-diff126 <- project(diff126, "epsg:6932")
-diff585 <- project(diff585, "epsg:6932")
-
-# read in the coastline
-coast <- readRDS("data/coast_vect.RDS")
-
-# load in subareas
-subareas <- load_ASDs() %>%
-  vect()
-
-# mask the projections using the coastline
-mask126 <- mask(diff126, as.lines(coast))
-mask585 <- mask(diff585, as.lines(coast))
-
-# for each layer of mask126
-print("SSP126")
-for(z in 1:nlyr(mask126)){
-  print(paste0("Processing layer ", z, " of ", nlyr(mask126)))
-  
-  # convert to polygons
-  this_poly <- as.polygons(mask126[[z]], values = T, dissolve = T)
-  
-  # split up with ccamlr subarea lines
-  this_poly <- split(this_poly, subareas)
-  
-  # get nearest subarea to each polygon
-  for(i in 1:nrow(this_poly)){
-    
-    # isolate polygon
-    pt <- this_poly[i,]
-    
-    # calculate distance to nearest subareas
-    dists <- distance(pt, subareas)
-    
-    # get nearest ID
-    nearest_idx <- which.min(dists)
-    
-    # get subarea name
-    pt$subarea <- subareas[nearest_idx]$GAR_Name
-    
-    # combine to all other polygons
-    if(i == 1){
-      poly_subareas <- pt
-    } else {
-      poly_subareas <- bind_spat_rows(poly_subareas, pt)
-    }
-    
-    # if i is a multiple of 100, print progress
-    if(i %% 100 == 0){
-      print(paste0("Processed ", i, " of ", nrow(this_poly), " polygons"))
-    }
-  }
-  
-  # convert to a dataframe
-  these_area_stats <- poly_subareas %>%
-    as.data.frame()
-  
-  # append centroids of polygons
-  these_area_stats <- these_area_stats %>%
-    bind_cols(
-      poly_subareas %>%
-        centroids() %>%
-        project("epsg:4326") %>%
-        as.data.frame(geom = "XY") %>%
-        select(x, y)
-    )
-  
-  # override subarea assignments for polygons outside of CCAMLR
-  these_area_stats <- these_area_stats %>%
-    mutate(subarea = case_when(
-      x > -63 & x < -55 & y > -55 & y < -50 ~ "Falklands",
-      x > 155 & x < 160 & y > -57 & y < -53 ~ "Macquarie",
-      x > 160 & x < 180 & y > -55 ~ "NZ Subantarctic",
-      x < -170 & y > -55 ~ "NZ Subantarctic",
-      x < 160 & x > 130 & y > -50 ~ "Tasmania",
-      x > 0 & x < 10 & y > -55 & y < -50 ~ "Bouvet",
-      x > 75 & x < 80 & y > -42 ~ "Amsterdam and St Paul",
-      x > -15 & x < -5 & y > -42 ~ "Tristan da Cunha",
-      x < -63 & x > -170 & y > -58 ~ "Chile", 
-      x < -60 & x > -120 & y > -50 ~ "Chile",
-      TRUE ~ subarea
-    ))
-  
-  # calculate loss and gain per subarea
-  these_area_stats <- these_area_stats %>%
-    mutate(area = expanse(poly_subareas)) %>%
-    group_by(subarea, mean) %>%
-    summarise(area_km2 = sum(area)/1e6) %>%
-    pivot_wider(names_from = mean, values_from = area_km2) %>%
-    rename(loss = `-1`,
-           no_change = `0`,
-           gain = `1`) %>%
-    mutate(across(everything(), ~replace_na(., 0))) %>%
-    mutate(original_area = loss + no_change,
-           net_change = gain - loss,
-           gcm = z) 
-  
-  # combine to all other layers
-  if(z == 1){
-    area_stats126 <- these_area_stats
-  } else {
-    area_stats126 <- rbind(area_stats126, these_area_stats)
-  }
-}
-
-# for each layer of mask585
-print("SSP585")
-for(z in 1:nlyr(mask585)){
-  print(paste0("Processing layer ", z, " of ", nlyr(mask585)))
-  
-  # convert to polygons
-  this_poly <- as.polygons(mask585[[z]], values = T, dissolve = T)
-  
-  # split up with ccamlr subarea lines
-  this_poly <- split(this_poly, subareas)
-  
-  # get nearest subarea to each polygon
-  for(i in 1:nrow(this_poly)){
-    
-    # isolate polygon
-    pt <- this_poly[i,]
-    
-    # calculate distance to nearest subareas
-    dists <- distance(pt, subareas)
-    
-    # get nearest ID
-    nearest_idx <- which.min(dists)
-    
-    # get subarea name
-    pt$subarea <- subareas[nearest_idx]$GAR_Name
-    
-    # combine to all other polygons
-    if(i == 1){
-      poly_subareas <- pt
-    } else {
-      poly_subareas <- bind_spat_rows(poly_subareas, pt)
-    }
-    
-    # if i is a multiple of 100, print progress
-    if(i %% 100 == 0){
-      print(paste0("Processed ", i, " of ", nrow(this_poly), " polygons"))
-    }
-  }
-  
-  # convert to a dataframe
-  these_area_stats <- poly_subareas %>%
-    as.data.frame()
-  
-  # append centroids of polygons
-  these_area_stats <- these_area_stats %>%
-    bind_cols(
-      poly_subareas %>%
-        centroids() %>%
-        project("epsg:4326") %>%
-        as.data.frame(geom = "XY") %>%
-        select(x, y)
-    )
-  
-  # override subarea assignments for polygons outside of CCAMLR
-  these_area_stats <- these_area_stats %>%
-    mutate(subarea = case_when(
-      x > -63 & x < -55 & y > -55 & y < -50 ~ "Falklands",
-      x > 155 & x < 160 & y > -57 & y < -53 ~ "Macquarie",
-      x > 160 & x < 180 & y > -55 ~ "NZ Subantarctic",
-      x < -170 & y > -55 ~ "NZ Subantarctic",
-      x < 160 & x > 130 & y > -50 ~ "Tasmania",
-      x > 0 & x < 10 & y > -55 & y < -50 ~ "Bouvet",
-      x > 75 & x < 80 & y > -42 ~ "Amsterdam and St Paul",
-      x > -15 & x < -5 & y > -42 ~ "Tristan da Cunha",
-      x < -63 & x > -170 & y > -58 ~ "Chile", 
-      x < -60 & x > -120 & y > -50 ~ "Chile",
-      TRUE ~ subarea
-    ))
-  
-  # calculate loss and gain per subarea
-  these_area_stats <- these_area_stats %>%
-    mutate(area = expanse(poly_subareas)) %>%
-    group_by(subarea, mean) %>%
-    summarise(area_km2 = sum(area)/1e6) %>%
-    pivot_wider(names_from = mean, values_from = area_km2) %>%
-    rename(loss = `-1`,
-           no_change = `0`,
-           gain = `1`) %>%
-    mutate(across(everything(), ~replace_na(., 0))) %>%
-    mutate(original_area = loss + no_change,
-           net_change = gain - loss,
-           gcm = z) 
-  
-  # combine to all other layers
-  if(z == 1){
-    area_stats585 <- these_area_stats
-  } else {
-    area_stats585 <- rbind(area_stats585, these_area_stats)
-  }
-}
-
-# combine ssp126 and ssp585 area stats
-area_stats126 <- area_stats126 %>%
-  mutate(SSP = "SSP126")
-area_stats585 <- area_stats585 %>%
-  mutate(SSP = "SSP585")
-area_stats <- rbind(area_stats126, area_stats585)
-
-# minimum and maximum net change for plotting
-min_diff <- min(area_stats$net_change, na.rm = T)
-max_diff <- max(area_stats$net_change, na.rm = T)
-abs_diff <- max(abs(min_diff), abs(max_diff))
-
-# calculate mean net_change per gcm and ssp
-mean_diff <- area_stats %>%
-  group_by(subarea, SSP) %>%
-  summarise(mean_difference = mean(net_change, na.rm = T))
-  
-# plot area gains by GCM and subarea
-p1 <- ggplot(area_stats, aes(x = subarea, y = net_change)) +
-  geom_hline(yintercept = 0) +
-  geom_jitter(width = 0.2, shape = 16, aes(color = net_change)) +
-  geom_point(data = mean_diff, aes(x = subarea, y = mean_difference), color = "grey10", size = 4) +
-  scale_color_gradient2(mid = "grey80") +
-  coord_flip() +
-  facet_wrap(~SSP) +
-  ylim(-abs_diff, abs_diff) +
-  labs(y = "Projected Change in Core Habitat (km²)",
-       x = "CCAMLR Subarea",
-       color = "Area Change (km²)") +
-  theme_minimal() +
-  theme(panel.spacing = unit(3, "lines"),
-        panel.grid.minor.x = element_blank(),
-        strip.text = element_text(face = "bold", size = 12),
-        panel.border = element_rect(fill = NA, color = "grey80", linewidth = 0.6),
-        panel.background = element_rect(fill = "white"))
-p1
-
-
-# export plot
-ggsave(paste0("output/climatic model/species plots/", species, "_area_differences.png"),
-       p1, width = 10, height = 12)
-
-# export data
-saveRDS(area_stats, 
-        paste0("output/climatic model/figdata/", species, "_area_differences_data.RDS"))
+# # reset variables
+# rm(list = setdiff(ls(), "species"))
+# 
+# # read in present day raster
+# present <- rast(paste0("output/climatic model/predictions/", species, "_simple_ensemble.tif"))
+# 
+# # read in colony locations and background samples
+# colonies <- readRDS(paste0("output/climatic model/extraction/", species, " extracted.rds"))
+# 
+# # convert to terra
+# colonies <- colonies %>%
+#   vect(geom = c("x", "y"), crs = crs(present))
+# 
+# # extract values to data
+# colonies$prediction <- terra::extract(present, colonies, ID = F)
+# 
+# # get dataframe of truth level and prediction
+# df <- colonies %>%
+#   as.data.frame() %>%
+#   select(pa, prediction) %>%
+#   mutate(pa = as.factor(pa)) %>%
+#   na.omit()
+# 
+# # get threshold using max_kappa (or max TSS?)
+# threshold <- tidysdm::optim_thresh(df$pa, df$prediction, metric = "tss_max", event_level = "second")
+# 
+# # classify raster using threshold
+# mat1 <- matrix(c(0, threshold, 10,
+#                  threshold, 1, 20),
+#                ncol = 3, byrow = T)
+# bins <- classify(present, mat1)
+# plot(bins)
+# 
+# # predict future binary classes for each gcm
+# mat2 <- matrix(c(0, threshold, 2,
+#                  threshold, 1, 3),
+#                ncol = 3, byrow = T)
+# 
+# # read in future ensemble predictions for ssp126
+# access126 <- rast(paste0("output/climatic model/projections/ssp126/ACCESS-ESM1-5/", species, "_ACCESS-ESM1-5_ssp126_simple_ensemble.tif"))
+# can126 <- rast(paste0("output/climatic model/projections/ssp126/CanESM5/", species, "_CanESM5_ssp126_simple_ensemble.tif"))
+# cesm126 <- rast(paste0("output/climatic model/projections/ssp126/CESM2-WACCM/", species, "_CESM2-WACCM_ssp126_simple_ensemble.tif"))
+# hadgem126 <- rast(paste0("output/climatic model/projections/ssp126/HadGEM3-GC31-LL/", species, "_HadGEM3-GC31-LL_ssp126_simple_ensemble.tif"))
+# ipsl126 <- rast(paste0("output/climatic model/projections/ssp126/IPSL-CM6A-LR/", species, "_IPSL-CM6A-LR_ssp126_simple_ensemble.tif"))
+# mri126 <- rast(paste0("output/climatic model/projections/ssp126/MRI-ESM2-0/", species, "_MRI-ESM2-0_ssp126_simple_ensemble.tif"))
+# nor126 <- rast(paste0("output/climatic model/projections/ssp126/NorESM2-MM/", species, "_NorESM2-MM_ssp126_simple_ensemble.tif"))
+# ukesm126 <- rast(paste0("output/climatic model/projections/ssp126/UKESM1-0-LL/", species, "_UKESM1-0-LL_ssp126_simple_ensemble.tif"))
+# 
+# # read in future ensemble predictions for ssp585
+# access585 <- rast(paste0("output/climatic model/projections/ssp585/ACCESS-ESM1-5/", species, "_ACCESS-ESM1-5_ssp585_simple_ensemble.tif"))
+# can585 <- rast(paste0("output/climatic model/projections/ssp585/CanESM5/", species, "_CanESM5_ssp585_simple_ensemble.tif"))
+# cesm585 <- rast(paste0("output/climatic model/projections/ssp585/CESM2-WACCM/", species, "_CESM2-WACCM_ssp585_simple_ensemble.tif"))
+# hadgem585 <- rast(paste0("output/climatic model/projections/ssp585/HadGEM3-GC31-LL/", species, "_HadGEM3-GC31-LL_ssp585_simple_ensemble.tif"))
+# ipsl585 <- rast(paste0("output/climatic model/projections/ssp585/IPSL-CM6A-LR/", species, "_IPSL-CM6A-LR_ssp585_simple_ensemble.tif"))
+# mri585 <- rast(paste0("output/climatic model/projections/ssp585/MRI-ESM2-0/", species, "_MRI-ESM2-0_ssp585_simple_ensemble.tif"))
+# nor585 <- rast(paste0("output/climatic model/projections/ssp585/NorESM2-MM/", species, "_NorESM2-MM_ssp585_simple_ensemble.tif"))
+# ukesm585 <- rast(paste0("output/climatic model/projections/ssp585/UKESM1-0-LL/", species, "_UKESM1-0-LL_ssp585_simple_ensemble.tif"))
+# 
+# # classify each gcm projection - ssp126
+# access126_bins <- classify(access126, mat2)
+# can126_bins <- classify(can126, mat2)
+# cesm126_bins <- classify(cesm126, mat2)
+# hadgem126_bins <- classify(hadgem126, mat2)
+# ipsl126_bins <- classify(ipsl126, mat2)
+# mri126_bins <- classify(mri126, mat2)
+# nor126_bins <- classify(nor126, mat2)
+# ukesm126_bins <- classify(ukesm126, mat2)
+# 
+# # classify each gcm projection - ssp585
+# access585_bins <- classify(access585, mat2)
+# can585_bins <- classify(can585, mat2)
+# cesm585_bins <- classify(cesm585, mat2)
+# hadgem585_bins <- classify(hadgem585, mat2)
+# ipsl585_bins <- classify(ipsl585, mat2)
+# mri585_bins <- classify(mri585, mat2)
+# nor585_bins <- classify(nor585, mat2)
+# ukesm585_bins <- classify(ukesm585, mat2)
+# 
+# # stack binned projections
+# bin_stack126 <- c(access126_bins, can126_bins, cesm126_bins, hadgem126_bins,
+#                   ipsl126_bins, mri126_bins, nor126_bins, ukesm126_bins)
+# bin_stack585 <- c(access585_bins, can585_bins, cesm585_bins, hadgem585_bins,
+#                   ipsl585_bins, mri585_bins, nor585_bins, ukesm585_bins)
+# 
+# # subtract present day from future
+# diff126 <- bin_stack126 - bins
+# diff585 <- bin_stack585 - bins
+# 
+# # substitute values
+# diff126 <- diff126 %>% 
+#   subst(c(-18, -17, -8, -7),
+#         c(-1, 0, NA, 1))
+# diff585 <- diff585 %>%
+#   subst(c(-18, -17, -8, -7),
+#         c(-1, 0, NA, 1))
+# 
+# # project
+# diff126 <- project(diff126, "epsg:6932")
+# diff585 <- project(diff585, "epsg:6932")
+# 
+# # read in the coastline
+# coast <- readRDS("data/coast_vect.RDS")
+# 
+# # load in subareas
+# subareas <- load_ASDs() %>%
+#   vect()
+# 
+# # mask the projections using the coastline
+# mask126 <- mask(diff126, as.lines(coast))
+# mask585 <- mask(diff585, as.lines(coast))
+# 
+# # for each layer of mask126
+# print("SSP126")
+# for(z in 1:nlyr(mask126)){
+#   print(paste0("Processing layer ", z, " of ", nlyr(mask126)))
+#   
+#   # convert to polygons
+#   this_poly <- as.polygons(mask126[[z]], values = T, dissolve = T)
+#   
+#   # split up with ccamlr subarea lines
+#   this_poly <- split(this_poly, subareas)
+#   
+#   # get nearest subarea to each polygon
+#   for(i in 1:nrow(this_poly)){
+#     
+#     # isolate polygon
+#     pt <- this_poly[i,]
+#     
+#     # calculate distance to nearest subareas
+#     dists <- distance(pt, subareas)
+#     
+#     # get nearest ID
+#     nearest_idx <- which.min(dists)
+#     
+#     # get subarea name
+#     pt$subarea <- subareas[nearest_idx]$GAR_Name
+#     
+#     # combine to all other polygons
+#     if(i == 1){
+#       poly_subareas <- pt
+#     } else {
+#       poly_subareas <- bind_spat_rows(poly_subareas, pt)
+#     }
+#     
+#     # if i is a multiple of 100, print progress
+#     if(i %% 100 == 0){
+#       print(paste0("Processed ", i, " of ", nrow(this_poly), " polygons"))
+#     }
+#   }
+#   
+#   # convert to a dataframe
+#   these_area_stats <- poly_subareas %>%
+#     as.data.frame()
+#   
+#   # append centroids of polygons
+#   these_area_stats <- these_area_stats %>%
+#     bind_cols(
+#       poly_subareas %>%
+#         centroids() %>%
+#         project("epsg:4326") %>%
+#         as.data.frame(geom = "XY") %>%
+#         select(x, y)
+#     )
+#   
+#   # override subarea assignments for polygons outside of CCAMLR
+#   these_area_stats <- these_area_stats %>%
+#     mutate(subarea = case_when(
+#       x > -63 & x < -55 & y > -55 & y < -50 ~ "Falklands",
+#       x > 155 & x < 160 & y > -57 & y < -53 ~ "Macquarie",
+#       x > 160 & x < 180 & y > -55 ~ "NZ Subantarctic",
+#       x < -170 & y > -55 ~ "NZ Subantarctic",
+#       x < 160 & x > 130 & y > -50 ~ "Tasmania",
+#       x > 0 & x < 10 & y > -55 & y < -50 ~ "Bouvet",
+#       x > 75 & x < 80 & y > -42 ~ "Amsterdam and St Paul",
+#       x > -15 & x < -5 & y > -42 ~ "Tristan da Cunha",
+#       x < -63 & x > -170 & y > -58 ~ "Chile", 
+#       x < -60 & x > -120 & y > -50 ~ "Chile",
+#       TRUE ~ subarea
+#     ))
+#   
+#   # calculate loss and gain per subarea
+#   these_area_stats <- these_area_stats %>%
+#     mutate(area = expanse(poly_subareas)) %>%
+#     group_by(subarea, mean) %>%
+#     summarise(area_km2 = sum(area)/1e6) %>%
+#     pivot_wider(names_from = mean, values_from = area_km2) %>%
+#     rename(loss = `-1`,
+#            no_change = `0`,
+#            gain = `1`) %>%
+#     mutate(across(everything(), ~replace_na(., 0))) %>%
+#     mutate(original_area = loss + no_change,
+#            net_change = gain - loss,
+#            gcm = z) 
+#   
+#   # combine to all other layers
+#   if(z == 1){
+#     area_stats126 <- these_area_stats
+#   } else {
+#     area_stats126 <- rbind(area_stats126, these_area_stats)
+#   }
+# }
+# 
+# # for each layer of mask585
+# print("SSP585")
+# for(z in 1:nlyr(mask585)){
+#   print(paste0("Processing layer ", z, " of ", nlyr(mask585)))
+#   
+#   # convert to polygons
+#   this_poly <- as.polygons(mask585[[z]], values = T, dissolve = T)
+#   
+#   # split up with ccamlr subarea lines
+#   this_poly <- split(this_poly, subareas)
+#   
+#   # get nearest subarea to each polygon
+#   for(i in 1:nrow(this_poly)){
+#     
+#     # isolate polygon
+#     pt <- this_poly[i,]
+#     
+#     # calculate distance to nearest subareas
+#     dists <- distance(pt, subareas)
+#     
+#     # get nearest ID
+#     nearest_idx <- which.min(dists)
+#     
+#     # get subarea name
+#     pt$subarea <- subareas[nearest_idx]$GAR_Name
+#     
+#     # combine to all other polygons
+#     if(i == 1){
+#       poly_subareas <- pt
+#     } else {
+#       poly_subareas <- bind_spat_rows(poly_subareas, pt)
+#     }
+#     
+#     # if i is a multiple of 100, print progress
+#     if(i %% 100 == 0){
+#       print(paste0("Processed ", i, " of ", nrow(this_poly), " polygons"))
+#     }
+#   }
+#   
+#   # convert to a dataframe
+#   these_area_stats <- poly_subareas %>%
+#     as.data.frame()
+#   
+#   # append centroids of polygons
+#   these_area_stats <- these_area_stats %>%
+#     bind_cols(
+#       poly_subareas %>%
+#         centroids() %>%
+#         project("epsg:4326") %>%
+#         as.data.frame(geom = "XY") %>%
+#         select(x, y)
+#     )
+#   
+#   # override subarea assignments for polygons outside of CCAMLR
+#   these_area_stats <- these_area_stats %>%
+#     mutate(subarea = case_when(
+#       x > -63 & x < -55 & y > -55 & y < -50 ~ "Falklands",
+#       x > 155 & x < 160 & y > -57 & y < -53 ~ "Macquarie",
+#       x > 160 & x < 180 & y > -55 ~ "NZ Subantarctic",
+#       x < -170 & y > -55 ~ "NZ Subantarctic",
+#       x < 160 & x > 130 & y > -50 ~ "Tasmania",
+#       x > 0 & x < 10 & y > -55 & y < -50 ~ "Bouvet",
+#       x > 75 & x < 80 & y > -42 ~ "Amsterdam and St Paul",
+#       x > -15 & x < -5 & y > -42 ~ "Tristan da Cunha",
+#       x < -63 & x > -170 & y > -58 ~ "Chile", 
+#       x < -60 & x > -120 & y > -50 ~ "Chile",
+#       TRUE ~ subarea
+#     ))
+#   
+#   # calculate loss and gain per subarea
+#   these_area_stats <- these_area_stats %>%
+#     mutate(area = expanse(poly_subareas)) %>%
+#     group_by(subarea, mean) %>%
+#     summarise(area_km2 = sum(area)/1e6) %>%
+#     pivot_wider(names_from = mean, values_from = area_km2) %>%
+#     rename(loss = `-1`,
+#            no_change = `0`,
+#            gain = `1`) %>%
+#     mutate(across(everything(), ~replace_na(., 0))) %>%
+#     mutate(original_area = loss + no_change,
+#            net_change = gain - loss,
+#            gcm = z) 
+#   
+#   # combine to all other layers
+#   if(z == 1){
+#     area_stats585 <- these_area_stats
+#   } else {
+#     area_stats585 <- rbind(area_stats585, these_area_stats)
+#   }
+# }
+# 
+# # combine ssp126 and ssp585 area stats
+# area_stats126 <- area_stats126 %>%
+#   mutate(SSP = "SSP126")
+# area_stats585 <- area_stats585 %>%
+#   mutate(SSP = "SSP585")
+# area_stats <- rbind(area_stats126, area_stats585)
+# 
+# # minimum and maximum net change for plotting
+# min_diff <- min(area_stats$net_change, na.rm = T)
+# max_diff <- max(area_stats$net_change, na.rm = T)
+# abs_diff <- max(abs(min_diff), abs(max_diff))
+# 
+# # calculate mean net_change per gcm and ssp
+# mean_diff <- area_stats %>%
+#   group_by(subarea, SSP) %>%
+#   summarise(mean_difference = mean(net_change, na.rm = T))
+#   
+# # plot area gains by GCM and subarea
+# p1 <- ggplot(area_stats, aes(x = subarea, y = net_change)) +
+#   geom_hline(yintercept = 0) +
+#   geom_jitter(width = 0.2, shape = 16, aes(color = net_change)) +
+#   geom_point(data = mean_diff, aes(x = subarea, y = mean_difference), color = "grey10", size = 4) +
+#   scale_color_gradient2(mid = "grey80") +
+#   coord_flip() +
+#   facet_wrap(~SSP) +
+#   ylim(-abs_diff, abs_diff) +
+#   labs(y = "Projected Change in Core Habitat (km²)",
+#        x = "CCAMLR Subarea",
+#        color = "Area Change (km²)") +
+#   theme_minimal() +
+#   theme(panel.spacing = unit(3, "lines"),
+#         panel.grid.minor.x = element_blank(),
+#         strip.text = element_text(face = "bold", size = 12),
+#         panel.border = element_rect(fill = NA, color = "grey80", linewidth = 0.6),
+#         panel.background = element_rect(fill = "white"))
+# p1
+# 
+# 
+# # export plot
+# ggsave(paste0("output/climatic model/species plots/", species, "_area_differences.png"),
+#        p1, width = 10, height = 12)
+# 
+# # export data
+# saveRDS(area_stats, 
+#         paste0("output/climatic model/figdata/", species, "_area_differences_data.RDS"))
 

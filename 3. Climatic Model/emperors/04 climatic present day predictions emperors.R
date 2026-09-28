@@ -318,16 +318,39 @@ brt <- rast(paste0("output/climatic model/predictions/", species, "_brt_predicti
 gam <- rast(paste0("output/climatic model/predictions/", species, "_gam_prediction.tif"))
 bart <- rast(paste0("output/climatic model/predictions/", species, "_bart_prediction.tif"))
 
-# stack predictions
-pred_stack <- c(rf, brt, gam, bart)
+# read in cbi scores for exclusion
+rf_cbi <- readRDS(paste0("output/climatic model/random forests/", species, "_cbi_scores.rds")) %>%
+  arrange(desc(mean)) %>%
+  slice(1) %>%
+  pull(mean)
+
+brt_cbi <- readRDS(paste0("output/climatic model/boosted regression trees/", species, "_cbi_scores.rds")) %>%
+  arrange(desc(mean)) %>%
+  slice(1) %>%
+  pull(mean)
+
+gam_cbi <- readRDS(paste0("output/climatic model/generalised additive models/", species, "_cbi_scores.rds")) %>%
+  arrange(desc(mean)) %>%
+  slice(1) %>%
+  pull(mean)
+
+bart_cbi <- readRDS(paste0("output/climatic model/bayesian additive regression trees/", species, "_cbi_scores.rds")) %>%
+  arrange(desc(mean)) %>%
+  slice(1) %>%
+  pull(mean)
+
+# create stack of accurate predictions 
+pred_list <- list()
+
+if (rf_cbi >= 0.4)   pred_list <- c(pred_list, list(rf))
+if (brt_cbi >= 0.4)  pred_list <- c(pred_list, list(brt))
+if (gam_cbi >= 0.4)  pred_list <- c(pred_list, list(gam))
+if (bart_cbi >= 0.4) pred_list <- c(pred_list, list(bart))
+
+pred_stack <- do.call(c, pred_list)
 
 # simple ensemble
 simple <- app(pred_stack, mean, na.rm = TRUE)
-plot(simple)
-
-# plot ensembles in polar view
-polar_simple <- project(simple, "epsg:6932")
-plot(polar_simple)
 
 # export the ensemble predictions
 writeRaster(simple, 

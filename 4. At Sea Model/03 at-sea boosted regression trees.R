@@ -2,29 +2,9 @@
 # Fit Oceanographic Boosted Regression Trees
 #----------------------------------------------
 
-rm(list=ls())
-setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
+# 1. Configuration
 
-{
-  library(terra)
-  library(tidyterra)
-  library(tidyverse)
-  library(tidymodels)
-  library(themis)
-  library(tidysdm)
-  library(future)
-  library(miceRanger)
-  library(bonsai)
-}
-
-# 1. Configuration 
-
-# set seed
-set.seed(777)
-
-# define species and stage
-species <- "ADPE"
-stage <- "chick-rearing"
+rm(list=setdiff(ls(), c("cores", "species", "stage", "meta")))
 
 # read in data
 data <- readRDS(paste0("output/at-sea model/model_data/", species, "_", stage, "_data.rds"))
@@ -43,7 +23,7 @@ v <- length(unique(data$subarea))
 #define BRT
 brt_mod <- boost_tree() %>%
   set_mode("classification") %>%
-  set_engine("lightgbm" #use lightgbm package
+  set_engine("lightgbm", num_threads = 1 #use lightgbm package
   ) %>%
   set_args(trees = tune(),
            tree_depth = tune(), 
@@ -62,7 +42,7 @@ grid <- expand_grid(learn_rate = learn.rate, tree_depth = tree.depth, trees = tr
 
 #create cross-validation folds
 folds <- group_vfold_cv(data = data, 
-                        group = subarea, #split training/testing data by subarea
+                        group = subarea, #split training/testing data by individual ID
                         v = v, #number of folds
                         balance = "groups" #one subarea per fold
 )
@@ -77,8 +57,7 @@ brt_wf <- brt_wf %>%
   add_recipe(rec)
 
 # enable parallelisation
-cores <- 10
-plan(multisession, workers = cores)
+#plan(multisession, workers = cores)
 plan(sequential)
 
 #run models with tuning
@@ -90,10 +69,11 @@ tun <- tune_grid(brt_wf,
 
 #get metric scores for each tuning value
 metrics <- collect_metrics(tun, summarize = F)
+print(metrics)
 
 #extract best model
 best <- show_best(tun, metric = "boyce_cont") %>%
-  filter(n == v)
+  filter(n == max(n))
 
 #set up model
 best_mod <- boost_tree() %>%
@@ -153,22 +133,6 @@ metrics <- metrics %>% left_join(resample_subareas)
 metrics <- metrics %>%
   dplyr::select(subarea, trees, tree_depth, learn_rate, .estimate)
 
-# plot
-ggplot(metrics, aes(x = as.factor(trees), y = .estimate)) +
-  geom_boxplot() +
-  geom_point(aes(col = subarea), size = 4, alpha = 0.4) +
-  theme_bw()
-
-ggplot(metrics, aes(x = as.factor(tree_depth), y = .estimate)) +
-  geom_boxplot() +
-  geom_point(aes(col = subarea), size = 4, alpha = 0.4) +
-  theme_bw()
-
-ggplot(metrics, aes(x = as.factor(learn_rate), y = .estimate)) +
-  geom_boxplot() +
-  geom_point(aes(col = subarea), size = 4, alpha = 0.4) +
-  theme_bw()
-
 # only keep best hyperparameter settings
 metrics <- metrics %>%
   filter(trees == best$trees[1],
@@ -181,10 +145,7 @@ saveRDS(metrics,
 
 
 # 3b. Variable Importance Scores
-vi_scores <- vip::vi(best_fit)
-
-# plot
-vip::vip(best_fit)
+vi_scores <- vi(best_fit)
 
 # export
 saveRDS(vi_scores, 
@@ -210,16 +171,6 @@ pdp_ovr <- as_tibble(pdps$agr_profiles) %>%
   rename(x = `_x_`, yhat = `_yhat_`, var = `_vname_`) %>%
   dplyr::select(var, x, yhat) %>%
   mutate(yhat = 1-yhat)
-
-# plot PDPs
-p1 <- ggplot(pdp_ovr, aes(x, yhat)) + 
-  geom_line(color = "darkblue", linewidth = 1.2) + 
-  facet_wrap(~var, scales = "free_x", nrow = 1) + 
-  ylim(0, 1) + 
-  theme_bw() +
-  ylab("Predicted habitat suitability") + 
-  xlab("Predictor values")
-p1
 
 # export PDP values
 saveRDS(pdp_ovr, 

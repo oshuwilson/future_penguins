@@ -14,7 +14,7 @@ library(tidyterra)
 #-------------------------------------------------------------------------------
 
 # set species
-species <- "MAPE"
+species <- "ADPE"
 
 # read in background samples
 bg <- readRDS("output/climatic model/background/background template.rds")

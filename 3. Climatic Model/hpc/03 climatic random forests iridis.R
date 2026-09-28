@@ -96,7 +96,7 @@ for(i in 1:27){
   
   #extract best model
   best <- show_best(tun, metric = "tss_max") %>%
-    filter(n == v)
+    filter(n == max(n))
   
   # append predictors
   best <- best %>%

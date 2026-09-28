@@ -17,9 +17,17 @@ library(umap)
 library(dbscan)
 
 # create dataframe of species and stage options
-meta <- expand.grid(species = c("GEPE"),
+meta <- expand.grid(species = c("ADPE", "CHPE", "EMPE", "GEPE", "KIPE", "MAPE"),
             stage = c("chick-rearing", "incubation")) %>%
   as_tibble()
+
+# remove EMPE and GEPE incubation (data limitations)
+meta <- meta %>%
+  filter_out(species %in% c("EMPE", "GEPE") & stage == "incubation")
+
+# add macaroni pre-moult
+meta <- meta %>%
+  bind_rows(tibble(species = "MAPE", stage = "pre-moult"))
 
 # loop over each row of meta
 for(i in 1:nrow(meta)){
@@ -27,6 +35,9 @@ for(i in 1:nrow(meta)){
   # define species and stage
   species <- meta$species[i]
   stage <- meta$stage[i]
+  
+  # print initiation
+  print(paste0(species, " ", stage, " initiated"))
   
   # read in extracted data
   data <- readRDS(paste0("output/at-sea model/extraction/", species, " ", stage, " extracted.RDS"))
@@ -47,18 +58,9 @@ for(i in 1:nrow(meta)){
   # remove NAs
   data <- data %>%
     na.omit()
-  
-  # isolate background data
-  bg <- data %>%
-    filter(pb == "background")
-    
-  # if dataset is bigger than 30,000 points, randomly sample background points to 30,000 [to work with dbscan]
-  if(nrow(bg) > 30000){
-    bg <- sample_n(bg, 30000)
-  }
-  
+
   # scale the environmental data
-  scaled <- bg %>%
+  scaled <- data %>%
     select(all_of(preds)) %>%
     mutate(across(all_of(preds), scale))
   
@@ -76,31 +78,38 @@ for(i in 1:nrow(meta)){
   cluster <- hdbscan(scaled_umap, minPts = 2)$cluster
   
   # bind cluster info
-  bg <- bg %>%
+  data <- data %>%
     bind_cols(cluster = cluster)
   
   # isolate points not assigned to a cluster
-  zeroes <- bg %>%
+  zeroes <- data %>%
     filter(cluster == 0)
+  zeroes_pres <- zeroes %>% 
+    filter(pb == "presence")
+  zeroes_abs <- zeroes %>% 
+    filter(pb == "background")
+  
+  # isolate presences and absences
+  pres <- data %>%
+    filter(pb == "presence")
+  abs <- data %>%
+    filter(pb == "background")
   
   # filter to 1 location per cluster
-  bg <- bg %>%
+  pres <- pres %>%
     group_by(cluster) %>%
     sample_n(1) %>%
     ungroup() %>%
-    filter(cluster != 0)
+    bind_rows(zeroes_pres)
+  abs <- abs %>%
+    group_by(cluster) %>%
+    sample_n(1) %>%
+    ungroup() %>%
+    bind_rows(zeroes_abs)
   
-  # get presence data
-  pres <- data %>%
-    filter(pb == "presence")
-  
-  # join the data
-  all <- bind_rows(bg, pres, zeroes) %>% 
+  # join the data together
+  all <- bind_rows(pres, abs) %>% 
     select(-cluster)
-  
-  # convert to terra
-  allx <- all %>% vect(geom = c("x", "y"), crs = "epsg:4326") %>%
-    project("epsg:6932")
   
   # export
   saveRDS(all, paste0("output/at-sea model/extraction/", species, " ", stage, " extracted subsampled.RDS"))

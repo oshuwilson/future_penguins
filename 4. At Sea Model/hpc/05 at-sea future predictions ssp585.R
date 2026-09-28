@@ -2,7 +2,6 @@
 # Make future predictions of at-sea suitability
 #--------------------------------------------------------
 
-# setup the ensemble predictions to discard rasters with CBIs under 0.4
 
 # checklist:
 # 1. newest thinned_tracks
@@ -29,8 +28,8 @@ library(doParallel)
 n_cores <- 78
 
 # define species and stage
-species <- "EMPE"
-stage <- "incubation"
+species <- "CHPE"
+stage <- "chick-rearing"
 
 # define scenario - ssp126 or ssp585
 scenario <- "ssp585"
@@ -94,6 +93,7 @@ foreach(z = 1:8) %dopar% {
     if(var == static_vars[1]) {
       static_stack <- var_rast
     } else {
+      var_rast <- resample(var_rast, static_stack[[1]], method = "bilinear")
       static_stack <- c(static_stack, var_rast)
     }
   }
@@ -150,11 +150,13 @@ foreach(z = 1:8) %dopar% {
     print(var)
   }
   
-  
   # create subarea raster to enable predictions
-  subarea_rast <- rast(ext = ext(static_stack), crs = "epsg:4326", res = res(static_stack))
+  subarea_rast <- rast(ext = ext(dynamic_stack), crs = "epsg:4326", res = res(dynamic_stack))
   values(subarea_rast) <- "test"
   names(subarea_rast) <- "subarea"
+  
+  # resample the static stack to the dynamic stack 
+  static_stack <- resample(static_stack, dynamic_stack[[1]], method = "bilinear")
   
   
   #------------------------------------------------------------
@@ -339,99 +341,6 @@ foreach(z = 1:8) %dopar% {
   
   # cleanup
   rm(brt, brt_pred)
-  
-  
-  #------------------------------------------------------------
-  # MaxEnt
-  #------------------------------------------------------------
-  
-  # print initialization
-  print(paste0("Predicting MaxEnt for ", gcm))
-  
-  # load in maxent model
-  maxent <- readRDS(paste0("penguins/output/at-sea model/maxent/", species, "_", stage, "_maxent_model.rds"))
-  
-  # list each month in the dynamic stack
-  timeslices <- time(dynamic_stack) %>% unique() %>% sort()
-  
-  # for each slice
-  for(j in 1:length(timeslices)){
-    slice <- timeslices[j]
-    
-    # limit dynamic stack to current slice
-    dynamic_slice <- dynamic_stack[[time(dynamic_stack) == slice]]
-    
-    # combine static, dynamic, and subarea rasters
-    stack <- c(static_stack, dynamic_slice, subarea_rast)
-    
-    # replace dynamic name codes with full names, e.g. if name is "zos_1", change to "ssh_1"
-    names(stack) <- gsub("deptho", "depth", names(stack))
-    names(stack) <- gsub("zos_", "ssh_", names(stack))
-    names(stack) <- gsub("so_", "sal_", names(stack))
-    names(stack) <- gsub("thetao_", "sst_", names(stack))
-    names(stack) <- gsub("siconc_", "sic_", names(stack))
-    names(stack) <- gsub("mlotst_", "mld_", names(stack))
-    
-    # remove everything following the first underscore from names
-    names(stack) <- gsub("_.*", "", names(stack))
-    
-    # predict raster
-    pred_raster <- predict_raster(maxent, stack, type = "prob")
-    
-    # limit to presences only
-    pred_raster <- pred_raster[[names(pred_raster) == ".pred_presence"]]
-    
-    # apply timestamp to raster
-    time(pred_raster) <- slice
-    time(pred_raster)
-    
-    # combine with other predictions
-    if(slice == timeslices[1]) {
-      preds <- pred_raster
-    } else {
-      preds <- c(preds, pred_raster)
-    }
-    
-  }
-  
-  # for each month, average predictions
-  for(this_month in months){
-    
-    # isolate predictions for this month
-    month_preds <- preds[[month(time(preds)) == this_month]]
-    
-    # average predictions
-    month_preds <- app(month_preds, mean, na.rm = TRUE)
-    
-    # assign time as 2010 for this month
-    time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
-    
-    # get weighting for this month
-    weight <- month_props %>%
-      filter(month == this_month) %>%
-      pull(prop)
-    
-    # multiply by proportion
-    month_preds <- month_preds * weight
-    
-    # join to all monthly predictions
-    if(this_month == months[1]) {
-      all_month_preds <- month_preds
-    } else {
-      all_month_preds <- c(all_month_preds, month_preds)
-    }
-  }
-  
-  # sum monthly predictions to get breeding stage prediction
-  maxent_pred <- app(all_month_preds, sum, na.rm = TRUE)
-  
-  # export the maxent prediction
-  writeRaster(maxent_pred, 
-              filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_maxent_prediction.tif"),
-              overwrite = TRUE)
-  
-  # cleanup
-  rm(maxent, maxent_pred)
   
   
   #------------------------------------------------------------
@@ -700,33 +609,11 @@ foreach(z = 1:8) %dopar% {
   gam <- rast(paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_gam_prediction.tif"))
   bart <- rast(paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_bart_prediction.tif"))
   
-  # scale rasters to between 0 and 1
-  # rf <- (rf - min(values(rf), na.rm = TRUE)) / 
-  #   (max(values(rf), na.rm = TRUE) - min(values(rf), na.rm = TRUE))
-  # brt <- (brt - min(values(brt), na.rm = TRUE)) /
-  #   (max(values(brt), na.rm = TRUE) - min(values(brt), na.rm = TRUE))
-  # maxent <- (maxent - min(values(maxent), na.rm = TRUE)) /
-  #   (max(values(maxent), na.rm = TRUE) - min(values(maxent), na.rm = TRUE))
-  # gam <- (gam - min(values(gam), na.rm = TRUE)) /
-  #   (max(values(gam), na.rm = TRUE) - min(values(gam), na.rm = TRUE))
-  # bart <- (bart - min(values(bart), na.rm = TRUE)) /
-  #   (max(values(bart), na.rm = TRUE) - min(values(bart), na.rm = TRUE))
-  
-  # stack predictions
-  pred_stack <- c(rf, brt, gam, bart)
-  
-  # simple ensemble
-  simple <- app(pred_stack, mean, na.rm = TRUE)
-  plot(simple)
-  
-  # read in cbi scores for weighted ensemble
+  # read in cbi scores for model selection
   rf_cbi <- readRDS(paste0("penguins/output/at-sea model/random forests/", species, "_", stage, "_cbi_scores.rds")) %>%
     pull(.estimate) %>%
     mean()
   brt_cbi <- readRDS(paste0("penguins/output/at-sea model/boosted regression trees/", species, "_", stage, "_cbi_scores.rds")) %>%
-    pull(.estimate) %>%
-    mean()
-  maxent_cbi <- readRDS(paste0("penguins/output/at-sea model/maxent/", species, "_", stage, "_cbi_scores.rds")) %>%
     pull(.estimate) %>%
     mean()
   gam_cbi <- readRDS(paste0("penguins/output/at-sea model/generalised additive models/", species, "_", stage, "_cbi_scores.rds")) %>%
@@ -736,30 +623,21 @@ foreach(z = 1:8) %dopar% {
     pull(.estimate) %>%
     mean()
   
+  # create stack of accurate predictions 
+  pred_list <- list()
   
-  # multiply predictions by relevant cbi scores
-  rf <- rf * rf_cbi
-  brt <- brt * brt_cbi
-  maxent <- maxent * maxent_cbi
-  gam <- gam * gam_cbi
-  bart <- bart * bart_cbi
+  if (rf_cbi >= 0.4)   pred_list <- c(pred_list, list(rf))
+  if (brt_cbi >= 0.4)  pred_list <- c(pred_list, list(brt))
+  if (gam_cbi >= 0.4)  pred_list <- c(pred_list, list(gam))
+  if (bart_cbi >= 0.4) pred_list <- c(pred_list, list(bart))
   
-  # stack predictions
-  pred_stack2 <- c(rf, brt, maxent, gam, bart)
+  pred_stack <- do.call(c, pred_list)
   
-  # weighted ensemble
-  weighted <- app(pred_stack2, mean, na.rm = TRUE)
-  
-  # rescale weighted ensemble to between 0 and 1
-  # weighted <- (weighted - min(values(weighted), na.rm = TRUE)) / 
-  #   (max(values(weighted), na.rm = TRUE) - min(values(weighted), na.rm = TRUE))
+  # simple ensemble
+  simple <- app(pred_stack, mean, na.rm = TRUE)
   
   # export ensemble predictions
   writeRaster(simple, 
               filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_simple_ensemble.tif"),
               overwrite = TRUE)
-  writeRaster(weighted,
-              filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_weighted_ensemble.tif"),
-              overwrite = TRUE)
-  
 }

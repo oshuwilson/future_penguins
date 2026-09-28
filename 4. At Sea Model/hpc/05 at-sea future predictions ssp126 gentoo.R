@@ -86,6 +86,7 @@ foreach(z = 1:8) %dopar% {
     if(var == static_vars[1]) {
       static_stack <- var_rast
     } else {
+      var_rast <- resample(var_rast, static_stack[[1]], method = "bilinear")
       static_stack <- c(static_stack, var_rast)
     }
   }
@@ -142,11 +143,13 @@ foreach(z = 1:8) %dopar% {
     print(var)
   }
   
-  
   # create subarea raster to enable predictions
-  subarea_rast <- rast(ext = ext(static_stack), crs = "epsg:4326", res = res(static_stack))
+  subarea_rast <- rast(ext = ext(dynamic_stack), crs = "epsg:4326", res = res(dynamic_stack))
   values(subarea_rast) <- "test"
   names(subarea_rast) <- "subarea"
+  
+  # resample the static stack to the dynamic stack 
+  static_stack <- resample(static_stack, dynamic_stack[[1]], method = "bilinear")
   
   
   #------------------------------------------------------------
@@ -381,124 +384,6 @@ foreach(z = 1:8) %dopar% {
   
   # cleanup
   rm(brt, northern_pred, crozet_pred, kerguelen_pred, midrange_pred, southern_pred)
-  
-  
-  #------------------------------------------------------------
-  # MaxEnt
-  #------------------------------------------------------------
-  
-  # print initialization
-  print(paste0("Predicting MaxEnt for ", gcm))
-  
-  # load in maxent model
-  maxent <- readRDS(paste0("penguins/output/at-sea model/maxent/", species, "_", stage, "_maxent_model.rds"))
-  
-  # list each month in the dynamic stack
-  timeslices <- time(dynamic_stack) %>% unique() %>% sort()
-  
-  # for each slice
-  for(j in 1:length(timeslices)){
-    slice <- timeslices[j]
-    
-    # limit dynamic stack to current slice
-    dynamic_slice <- dynamic_stack[[time(dynamic_stack) == slice]]
-    
-    # combine static, dynamic, and subarea rasters
-    stack <- c(static_stack, dynamic_slice, subarea_rast)
-    
-    # replace dynamic name codes with full names, e.g. if name is "zos_1", change to "ssh_1"
-    names(stack) <- gsub("deptho", "depth", names(stack))
-    names(stack) <- gsub("zos_", "ssh_", names(stack))
-    names(stack) <- gsub("so_", "sal_", names(stack))
-    names(stack) <- gsub("thetao_", "sst_", names(stack))
-    names(stack) <- gsub("siconc_", "sic_", names(stack))
-    names(stack) <- gsub("mlotst_", "mld_", names(stack))
-    
-    # remove everything following the first underscore from names
-    names(stack) <- gsub("_.*", "", names(stack))
-    
-    # predict raster
-    pred_raster <- predict_raster(maxent, stack, type = "prob")
-    
-    # limit to presences only
-    pred_raster <- pred_raster[[names(pred_raster) == ".pred_presence"]]
-    
-    # apply timestamp to raster
-    time(pred_raster) <- slice
-    time(pred_raster)
-    
-    # combine with other predictions
-    if(slice == timeslices[1]) {
-      preds <- pred_raster
-    } else {
-      preds <- c(preds, pred_raster)
-    }
-    
-  }
-  
-  # for each month, average predictions
-  for(this_month in months){
-    
-    # isolate predictions for this month
-    month_preds <- preds[[month(time(preds)) == this_month]]
-    
-    # average predictions
-    month_preds <- app(month_preds, mean, na.rm = TRUE)
-    
-    # assign time as 2010 for this month
-    time(month_preds) <- as_date(paste0("2010-", this_month, "-01"))
-    
-    # join to all monthly predictions
-    if(this_month == months[1]) {
-      all_month_preds <- month_preds
-    } else {
-      all_month_preds <- c(all_month_preds, month_preds)
-    }
-  }
-  
-  # create a southern range prediction
-  southern_stack <- all_month_preds[[month(time(all_month_preds)) %in% c(11, 12, 1, 2, 3)]]
-  southern_pred <- app(southern_stack, mean, na.rm = TRUE)
-  
-  # create a midrange prediction
-  midrange_stack <- all_month_preds[[month(time(all_month_preds)) %in% c(10, 11, 12, 1, 2)]]
-  midrange_pred <- app(midrange_stack, mean, na.rm = TRUE)
-  
-  # create a kerguelen prediction
-  kerguelen_stack <- all_month_preds[[month(time(all_month_preds)) %in% c(8, 9, 10, 11, 12)]]
-  kerguelen_pred <- app(kerguelen_stack, mean, na.rm = TRUE)
-  
-  # create a crozet prediction
-  crozet_stack <- all_month_preds[[month(time(all_month_preds)) %in% c(8, 9, 10, 11)]]
-  crozet_pred <- app(crozet_stack, mean, na.rm = TRUE)
-  
-  # create a northern range prediction
-  northern_stack <- all_month_preds[[month(time(all_month_preds)) %in% c(6, 7, 8, 9, 10)]]
-  northern_pred <- app(northern_stack, mean, na.rm = TRUE)
-  
-  # export the random forest predictions
-  writeRaster(southern_pred, 
-              filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_maxent_southern_prediction.tif"),
-              overwrite = TRUE)
-  
-  writeRaster(midrange_pred,
-              filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_maxent_midrange_prediction.tif"),
-              overwrite = TRUE)
-  
-  writeRaster(kerguelen_pred,
-              filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_maxent_kerguelen_prediction.tif"),
-              overwrite = TRUE)
-  
-  writeRaster(crozet_pred,
-              filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_maxent_crozet_prediction.tif"),
-              overwrite = TRUE)
-  
-  writeRaster(northern_pred,
-              filename = paste0("penguins/output/at-sea model/projections/", scenario, "/", gcm, "/", species, "_", stage, "_", gcm, "_", scenario, "_maxent_northern_prediction.tif"),
-              overwrite = TRUE)
-  
-  # cleanup
-  rm(maxent, northern_pred, crozet_pred, kerguelen_pred, midrange_pred, southern_pred)
   
   
   #------------------------------------------------------------

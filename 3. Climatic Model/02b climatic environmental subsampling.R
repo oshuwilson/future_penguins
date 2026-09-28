@@ -17,8 +17,8 @@ library(sf)
 library(umap)
 library(dbscan)
 
-# define species options for this run
-species_options <- c("MAPE")
+# define species options for this run - emperors need custom script
+species_options <- c("ADPE", "CHPE", "GEPE", "KIPE", "MAPE")
 
 # loop over option
 for(species in species_options){
@@ -28,6 +28,13 @@ for(species in species_options){
   
   # read in extracted info
   data <- readRDS(paste0("output/climatic model/extraction/", species, " extracted.rds"))
+  
+  # select key columns
+  data <- data %>%
+    select(subarea, pa, avg_temp, avg_min_temp, avg_max_temp,
+           avg_prec, avg_min_prec, avg_max_prec,
+           avg_now, avg_min_now, avg_max_now,
+           sector, x, y)
   
   # remove NAs
   data <- data %>%

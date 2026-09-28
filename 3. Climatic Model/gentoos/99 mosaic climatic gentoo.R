@@ -64,7 +64,7 @@ gentoos <- mosaic(crozet, kerguelen, marion, gough, nz_subantarctic,
 plot(gentoos)
 
 # save raster
-writeRaster(gentoos, "output/climatic model/predictions/GEPE_chick-rearing_simple_ensemble.tif",
+writeRaster(gentoos, "output/climatic model/predictions/GEPE_simple_ensemble.tif",
             overwrite=TRUE)
 plot(gentoos %>% project("epsg:6932"))
 

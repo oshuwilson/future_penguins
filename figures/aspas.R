@@ -2,6 +2,8 @@
 # Antarctic Special Protected Areas
 #-------------------------------------------------------------------------------
 
+# need to run Future foraging habitat proportion for SSP585
+
 rm(list=ls())
 setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
 
@@ -34,7 +36,7 @@ all_spp <- unique(dists$sp)
 #-------------------------------------------------------------------------------
 
 # for each species
-for(species in c("ADPE", "CHPE", "EMPE", "GEPE", "KIPE", "MAPE")){
+for(species in c("ADPE", "CHPE", "EMPE", "GEPE")){
   print(species)
   
   # identify breeding habitat
@@ -140,9 +142,9 @@ saveRDS(present_summary, "output/imagery/aspas/present_df.rds")
 # Future core breeding habitat overlap
 #-------------------------------------------------------------------------------
 
-scenario <- "ssp585"
+scenario <- "ssp126"
 
-for(species in c("ADPE", "CHPE", "EMPE", "GEPE", "KIPE", "MAPE")){
+for(species in c("ADPE", "CHPE", "EMPE", "GEPE")){
   print(species)
   
   # loop to check if core breeding habitat preserved
@@ -228,9 +230,9 @@ saveRDS(gcm_summary, paste0("output/imagery/aspas/", scenario, "core_check.rds")
 # Future foraging habitat proportion
 #-------------------------------------------------------------------------------
 
-scenario <- "ssp126"
+scenario <- "ssp585"
 
-for(species in c("ADPE", "CHPE", "EMPE", "GEPE", "KIPE", "MAPE")){
+for(species in c("ADPE", "CHPE", "EMPE", "GEPE")){
   print(species)
   
   for(i in 1:length(aspa)){
@@ -374,7 +376,7 @@ for(this_species in c("ADPE", "CHPE", "EMPE", "GEPE")){
     pull(ASPA_No)
   
   # minimum threshold based on 95th quantile
-  min_thresh <- 0.15
+  min_thresh <- 0.25
   
   # for each aspa
   for(this_aspa in these_aspas){
@@ -522,8 +524,8 @@ p1 <- ggplot(by_species, aes(x = species, y = count, fill = interaction(species,
         panel.grid.minor.x = element_blank(),
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_line(color = "grey80"), 
-        axis.text = element_text(size = 11), 
-        axis.title = element_text(size = 12, color = "grey20"))
+        axis.text = element_text(size = 15), 
+        axis.title = element_text(size = 17, color = "grey20"))
 p1 + ggview::canvas(8, 5)
 
 # export

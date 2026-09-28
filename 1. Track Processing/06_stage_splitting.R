@@ -110,11 +110,7 @@ for(colony_name in colony_names){
   #trax <- erase(trax, coast)
   
   # split up trips
-  if(colony_name == "Esperanza, Antarctic Peninsula"){
-    colony_tracks <- trip_split(trax, meta, buff.dist = 18000)
-  } else {
-    colony_tracks <- trip_split(trax, meta, buff.dist = 3000)
-  }
+  colony_tracks <- trip_split(trax, meta, buff.dist = 3000)
   
   # crop coastline to track extent
   crop_coast <- crop(coast, ext(trax))

@@ -13,7 +13,7 @@ model <- "at-sea model"
 # all possible combinations of species, longname, and stage
 iters <- data.frame(
   species = c("ADPE", "ADPE", "CHPE", "CHPE", "GEPE", "MAPE", "MAPE", "MAPE", "KIPE", "KIPE", "EMPE"),
-  longname = c("Adelie Penguin", "Adelie Penguin", "Chinstrap Penguin", "Chinstrap Penguin", 
+  longname = c("Adélie Penguin", "Adélie Penguin", "Chinstrap Penguin", "Chinstrap Penguin", 
                "Gentoo Penguin", "Macaroni Penguin", "Macaroni Penguin", "Macaroni Penguin", 
                "King Penguin", "King Penguin", "Emperor Penguin"),
   stage = c("incubation", "chick-rearing", "incubation", "chick-rearing", "chick-rearing", 
@@ -97,6 +97,14 @@ for(i in 1:nrow(iters)){
   
 }
 
+# capitalise stage names
+vi_all <- vi_all %>%
+  mutate(stage = case_when(
+    stage == "incubation" ~ "Incubation",
+    stage == "chick-rearing" ~ "Chick-Rearing",
+    stage == "pre-moult" ~ "Pre-Moult"
+  ))
+
 # plot
 p1 <- ggplot(vi_all, aes(x = Variable, y = Importance)) +
   geom_bar(aes(fill = algorithm), alpha = 1, stat = "identity", position = position_dodge(0.75)) + 
@@ -104,30 +112,34 @@ p1 <- ggplot(vi_all, aes(x = Variable, y = Importance)) +
   theme_minimal() +
   ylab("Relative Covariate Importance") + 
   xlab("Covariate") +
-  facet_wrap(~longname * stage, ncol = 2) +
+  facet_grid(longname ~ stage,
+             axes = "all_x",
+             axis.labels = "all_x") +
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1,0.2), expand = c(0,0)) +
   theme(plot.title = element_text(hjust = 0.5),
-        axis.text.x = element_text(angle = 45, hjust = 1))
-p1 + ggview::canvas(width = 8, height = 14)
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 12))
+p1 + ggview::canvas(width = 10, height = 14)
 
 # export
 ggsave(filename = paste0("text/figures/draft/supplementary/oceanographic variable importance.png"),
        plot = p1,
-       width = 8,
+       width = 10,
        height = 14,
        units = "in",
        dpi = 300)
 
 
 
-# 1. terrestrial model
+# 2. terrestrial model
 rm(list=ls())
 model <- "climatic model"
 
 # all possible combinations of species and longname
 iters <- data.frame(
   species = c("ADPE", "CHPE", "GEPE", "MAPE", "KIPE", "EMPE"),
-  longname = c("Adelie Penguin", "Chinstrap Penguin", "Gentoo Penguin", 
+  longname = c("Adélie Penguin", "Chinstrap Penguin", "Gentoo Penguin", 
                "Macaroni Penguin", "King Penguin", "Emperor Penguin") 
 )
 

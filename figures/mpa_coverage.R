@@ -21,6 +21,8 @@ unknown <- readRDS("data/mpas/unknown_mpas_agg.rds")
 # Present day coverage for each species
 #-------------------------------------------------------------------------------
 
+# Done ADPE, CHPE, GEPE, MAPE, KIPE, EMPE
+
 # define species
 species <- "CHPE"
 longname <- "Chinstrap Penguin"
@@ -446,7 +448,7 @@ for(file in files){
 
 # recode species
 data$species <- recode(data$species,
-                       "ADPE" = "Adelie",
+                       "ADPE" = "Adélie",
                        "CHPE" = "Chinstrap",
                        "EMPE" = "Emperor",
                        "GEPE" = "Gentoo",
@@ -514,9 +516,10 @@ p4 <- ggplot(by_mpa_type_notake, aes(x = ssp, y = scaled_area, fill = type)) +
         panel.grid.major.x = element_line(color = "grey80"), 
         strip.background = element_rect(fill = NA, color = "white"),
         strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0,
-                                         size = 11),
+                                         size = 15),
         strip.placement = "outside",
-        axis.text = element_text(size = 11))
+        axis.text = element_text(size = 13),
+        axis.title = element_text(size = 17))
 p4 + ggview::canvas(width = 8, height = 10)
 
 # export plot
@@ -539,9 +542,10 @@ p5 <- ggplot(by_mpa_type_notake, aes(x = ssp, y = scaled_area, fill = type)) +
         panel.grid.major.x = element_line(color = "grey80"), 
         strip.background = element_rect(fill = NA, color = "white"),
         strip.text.y.left = element_text(face = "bold", vjust = 1, hjust = 1, angle = 0,
-                                         size = 11),
+                                         size = 15),
         strip.placement = "outside",
-        axis.text = element_text(size = 11))
+        axis.text = element_text(size = 13),
+        axis.title = element_text(size = 17))
 p5 + ggview::canvas(width = 8, height = 10)
 
 # export plot
@@ -659,3 +663,9 @@ emp %>%
   group_by(ssp) %>%
   summarise(mean_diff = mean(diff, na.rm = T),
             sd_diff = sd(diff, na.rm = T))
+
+emp %>%
+  group_by(ssp) %>%
+  summarise(total_area = sum(total_area)) %>%
+  mutate(present_area = sum(total_area[ssp == "Present"])) %>%
+  mutate(loss = 1 - (total_area / present_area))

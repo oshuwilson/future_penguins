@@ -9,14 +9,15 @@ setwd("~/OneDrive - University of Southampton/Documents/Chapter 03")
   library(tidyverse)
   library(terra)
   library(tidyterra)
+  library(future.apply)
 }
 extract <- terra::extract
 
 # species
-species <- "GEPE"
+species <- "MAPE"
 
 # stage
-stage <- "chick-rearing"
+stage <- "pre-moult"
 
 # load dynamic extract function
 source("code/R/dynamic_extract.R")
@@ -39,8 +40,8 @@ trax$pa <- "presence"
 bg$pa <- "background"
 
 # combine
-data <- bind_spat_rows(trax, bg)
-
+#data <- bind_spat_rows(trax, bg)
+data <- trax
 
 # 2. Extract environmental variables
 # 2.1 Static Variables
@@ -70,6 +71,9 @@ rm(depth, slope, dshelf)
 
 #  2.2 Dynamic Variables 
 
+sub_data <- data %>%
+  slice_sample(n = 100)
+
 # sst 
 data <- dynamic_extract("sst", data, crop = F)
 print("sst")
@@ -93,6 +97,16 @@ data <- dynamic_extract("vo", data, crop = F)
 data$curr <- sqrt((data$uo^2) + (data$vo^2))
 print("curr")
 
+# read in old extractions
+old <- readRDS(paste0("output/at-sea model/extraction/old/", species, " ", stage, " extracted.RDS"))
+
+# get background samples
+back <- old %>% 
+  filter(pa == "background")
+
+# join together
+data <- rbind(data, back)
+
 # export
 saveRDS(data, paste0("output/at-sea model/extraction/", species, " ", stage, " extracted.RDS"))
 
@@ -104,5 +118,5 @@ print(paste0(species, " ", stage, " extracted"))
 
 # change x for var of interest
 ggplot(data, aes(x = sic)) +
-  geom_histogram(aes(fill = pa), alpha = 0.5)
+  geom_density(aes(fill = pa), alpha = 0.5)
 
