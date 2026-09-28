@@ -1,4 +1,4 @@
-# **Code Repository for Paper: Projecting the Future Distributions of Penguins Under Different Climate Scenarios**
+# **Code Repository for Paper: Projected major redistribution of penguins in response to climate change**
 
 This repository contains all code used to produce species distribution models projecting the future distributions of seven Southern Ocean penguin species under both a low-emissions climate scenario (**SSP1-2.6**) and a high-emissions climate scenario (**SSP5-8.5**).
 
